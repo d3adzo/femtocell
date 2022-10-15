@@ -12,31 +12,30 @@
 
 
 struct tcp_hdr_s {
-	unsigned short int th_sport;
-	unsigned short int th_dport;
-	unsigned int th_seq;
-	unsigned int th_ack;
-	unsigned char th_x2 : 4, th_off : 4;
-	unsigned char th_flags;
-	unsigned short int th_win;
-	unsigned short int th_sum;
-	unsigned short int th_urp;
+	unsigned short int 	th_sport;
+	unsigned short int 	th_dport;
+	unsigned int 		th_seq;
+	unsigned int 		th_ack;
+	unsigned char 		th_x2 : 4, th_off : 4;
+	unsigned char 		th_flags;
+	unsigned short int 	th_win;
+	unsigned short int 	th_sum;
+	unsigned short int 	th_urp;
 } tcp_hdr_t;
 
 
 struct ip_hdr_s {
-	uint8_t  ip_hl : 4, /* both fields are 4 bits */
-		ip_v : 4;
-	uint8_t        ip_tos;
-	uint16_t       ip_len;
-	uint16_t       ip_id;
-	uint16_t       ip_off;
-	uint8_t        ip_ttl;
-	uint8_t        ip_p;
-	uint16_t       ip_sum;
-	uint32_t ip_src;
-	uint32_t ip_dst;
-}ip_hdr_t;
+	uint8_t  	ip_hl : 4, ip_v : 4;
+	uint8_t   	ip_tos;
+	uint16_t    ip_len;
+	uint16_t    ip_id;
+	uint16_t    ip_off;
+	uint8_t     ip_ttl;
+	uint8_t     ip_p;
+	uint16_t    ip_sum;
+	uint32_t 	ip_src;
+	uint32_t 	ip_dst;
+} ip_hdr_t;
 
 
 #define BUFFER_SIZE_PKT ((256*256) - 1)

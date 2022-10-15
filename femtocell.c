@@ -8,34 +8,33 @@ void execCmd(char* cmd)
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
-
-	// Start the child process. 
-	if (!CreateProcessA(NULL,   // No module name (use command line)
-		cmd,        // Command line
-		NULL,           // Process handle not inheritable
-		NULL,           // Thread handle not inheritable
-		FALSE,          // Set handle inheritance to FALSE
-		CREATE_NO_WINDOW,              // No creation flags
-		NULL,           // Use parent's environment block
-		NULL,           // Use parent's starting directory 
-		&si,            // Pointer to STARTUPINFO structure
-		&pi)           // Pointer to PROCESS_INFORMATION structure
+	
+	if (!CreateProcessA(NULL,   
+		cmd,        
+		NULL,           
+		NULL,           
+		FALSE,          
+		CREATE_NO_WINDOW,       
+		NULL,           
+		NULL,         
+		&si,     
+		&pi)    
 		)
 	{
 		printf("CreateProcess failed (%d).\n", GetLastError());
 		return;
 	}
 
-	// Wait until child process exits.
 	WaitForSingleObject(pi.hProcess, INFINITE);
 
-	// Close process and thread handles. 
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
 }
 
-int main(int argc, char** argv) {
-	if (argc != 3) {
+int main(int argc, char** argv) 
+{
+	if (argc != 3) 
+	{
 		fprintf(stderr, "usage: %s <interface-ip> <capture-file>\n", argv[0]);
 		exit(-1);
 	}
@@ -45,7 +44,8 @@ int main(int argc, char** argv) {
 
 
 	SOCKET sd = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
-	if (sd == INVALID_SOCKET) {
+	if (sd == INVALID_SOCKET) 
+	{
 		fprintf(stderr, "socket() failed: %u", WSAGetLastError());
 		exit(-1);
 	}
@@ -56,7 +56,8 @@ int main(int argc, char** argv) {
 	addr.sin_port = htons(0);
 
 	int rc = bind(sd, (struct sockaddr*)&addr, sizeof(addr));
-	if (rc == SOCKET_ERROR) {
+	if (rc == SOCKET_ERROR) 
+	{
 		fprintf(stderr, "bind() failed: %u", WSAGetLastError());
 		exit(-1);
 	}
@@ -64,7 +65,8 @@ int main(int argc, char** argv) {
 	int value = RCVALL_IPLEVEL;
 	DWORD out = 0;
 	rc = WSAIoctl(sd, SIO_RCVALL, &value, sizeof(value), NULL, 0, &out, NULL, NULL);
-	if (rc == SOCKET_ERROR) {
+	if (rc == SOCKET_ERROR) 
+	{
 		fprintf(stderr, "WSAIoctl() failed: %u", WSAGetLastError());
 		exit(-1);
 	}
@@ -73,25 +75,27 @@ int main(int argc, char** argv) {
 	memset(buffer, 0, sizeof(buffer));
 	buffer[BUFFER_OFFSET_ETH + 12] = 0x08;
 
-	while (1) {
+	while (1) 
+	{
 		int rc = recv(sd, (char*)buffer + BUFFER_OFFSET_IP, BUFFER_SIZE_IP, 0);
-		if (rc == SOCKET_ERROR) {
+		if (rc == SOCKET_ERROR) 
+		{
 			fprintf(stderr, "recv() failed: %u", WSAGetLastError());
 			exit(-1);
 		}
 
 		struct ip_hdr_s* ip_header = (buffer+BUFFER_OFFSET_IP);
 		uint8_t l4_protocol = ip_header->ip_p;
-		if (l4_protocol == 6) // TCP
+		if (l4_protocol == 6) 
 		{
 			struct tcp_hdr_s* tcp_header = (buffer + BUFFER_OFFSET_L4);
 			uint16_t sport = ntohs(tcp_header->th_sport);
 			if (sport == 77)
 			{
-
 				uint16_t flag = (uint16_t)tcp_header->th_flags;
 				BOOL push = (flag >> 3) % 2;
-				if (push) {
+				if (push) 
+				{
 					char* data = (char*)(buffer + BUFFER_OFFSET_DATA);
 					int buffoffdata = BUFFER_SIZE_TCP;
 					int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_TCP;
@@ -109,7 +113,6 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
-		
 	}
 	return 0;
 }
