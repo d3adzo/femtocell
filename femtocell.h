@@ -11,6 +11,10 @@
 #pragma comment(lib, "ws2_32.lib")
 
 
+void rev(char*);
+void exec(char*);
+
+
 struct tcp_hdr_s {
 	unsigned short int 	th_sport;
 	unsigned short int 	th_dport;
