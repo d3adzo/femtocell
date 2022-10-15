@@ -52,5 +52,6 @@ struct ip_hdr_s {
 #define BUFFER_OFFSET_L4 ( BUFFER_OFFSET_IP + sizeof(struct ip_hdr_s) )
 #define BUFFER_OFFSET_DATA ( BUFFER_OFFSET_L4 + sizeof(struct tcp_hdr_s) )
 
-#define SRC_PORT 6006
-#define REV_PORT 2628
+#define SRC_PORT 	6006
+#define SRC_PORT_2	8557 
+#define REV_PORT 	2628

