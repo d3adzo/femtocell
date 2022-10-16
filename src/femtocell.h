@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #include <errno.h>
 #include <stdio.h>
 #endif
@@ -10,6 +10,17 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+<<<<<<< HEAD:femtocell.h
+=======
+
+struct sockaddr_in* GetIP();
+void rev(char*);
+void exec(char*);
+void handleTCP(char* buffer, struct ip_hdr_s* ip_header);
+void handleUDP(char* buffer, struct ip_hdr_s* ip_header);
+void handleICMP(char* buffer, struct ip_hdr_s* ip_header);
+
+>>>>>>> 09a1a41 (Cleaned up code, added visual studio buildconfig):src/femtocell.h
 struct icmp_hdr_s {
 	uint8_t type;
 	uint8_t code;
