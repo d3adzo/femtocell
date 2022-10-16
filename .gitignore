@@ -2,3 +2,4 @@
 *.dll
 .DS_STORE
 .vscode
+*.history
