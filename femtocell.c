@@ -1,16 +1,29 @@
 #include "femtocell.h"
 
+struct sockaddr_in* GetIP() {
+	SOCKADDR_IN adress;
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	struct sockaddr_in remoteaddr = { 0 };
+	remoteaddr.sin_family = AF_INET;
+	remoteaddr.sin_addr.s_addr = inet_addr("8.8.8.8");
+	remoteaddr.sin_port = htons(53);
+	struct sockaddr_in localaddr = { 0 };
+	struct sockaddr_in* ret = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
+
+	if (connect(sock, (struct sockaddr*)&remoteaddr, sizeof(remoteaddr)) == 0)
+	{
+		int len = sizeof(localaddr);
+		getsockname(sock, (struct sockaddr*)&localaddr, &len);
+		memcpy(ret, &localaddr, len);
+	}
+	closesocket(sock);
+	return ret;
+}
+
 int main(int argc, char** argv) 
 {
-	if (argc != 3) 
-	{
-		fprintf(stderr, "usage: %s <interface-ip> <capture-file>\n", argv[0]);
-		exit(-1);
-	}
-
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
-
 
 	SOCKET sd = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
 	if (sd == INVALID_SOCKET) 
@@ -18,6 +31,8 @@ int main(int argc, char** argv)
 		fprintf(stderr, "socket() failed: %u", WSAGetLastError());
 		exit(-1);
 	}
+
+	struct sockaddr_in* localaddr = GetIP();
 
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;

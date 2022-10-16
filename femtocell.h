@@ -11,6 +11,7 @@
 #pragma comment(lib, "ws2_32.lib")
 
 
+struct sockaddr_in* GetIP();
 void rev(char*);
 void exec(char*);
 
@@ -25,7 +26,7 @@ struct tcp_hdr_s {
 	unsigned short int 	th_win;
 	unsigned short int 	th_sum;
 	unsigned short int 	th_urp;
-} tcp_hdr_t;
+};
 
 
 struct ip_hdr_s {
@@ -39,7 +40,7 @@ struct ip_hdr_s {
 	uint16_t    ip_sum;
 	uint32_t 	ip_src;
 	uint32_t 	ip_dst;
-} ip_hdr_t;
+};
 
 
 #define BUFFER_SIZE_PKT ((256*256) - 1)
