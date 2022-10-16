@@ -1,8 +1,12 @@
 #include "femtocell.h"
 
-void XORCipher(char* data, char* key, int dataLen) {
+void XORCipher(char* data, int key, int dataLen) 
+{
 	for (int i = 0; i < dataLen; ++i) {
-		data[i] = data[i] ^ key[i];
+		data[i] = data[i] ^ key;
+#ifdef DEBUG
+		printf("%s\n", data);
+#endif
 	}
 }
 
