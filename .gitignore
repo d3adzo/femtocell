@@ -2,12 +2,7 @@
 *.dll
 .DS_STORE
 .vscode
-<<<<<<< HEAD
-<<<<<<< HEAD
 *.history
-=======
-=======
->>>>>>> 09a1a4105e2edd57525e5bdd81e5428a575e2677
 
 
 ## Ignore Visual Studio temporary files, build results, and
@@ -361,12 +356,3 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-#vcpkg
-vcpkg_installed/
-# May contain creds :p
-<<<<<<< HEAD
-*.json
->>>>>>> 09a1a41 (Cleaned up code, added visual studio buildconfig)
-=======
-*.json
->>>>>>> 09a1a4105e2edd57525e5bdd81e5428a575e2677
