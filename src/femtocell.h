@@ -20,7 +20,10 @@ void handleTCP(char* buffer, struct ip_hdr_s* ip_header);
 void handleUDP(char* buffer, struct ip_hdr_s* ip_header);
 void handleICMP(char* buffer, struct ip_hdr_s* ip_header);
 
+<<<<<<< HEAD:src/femtocell.h
 >>>>>>> 09a1a41 (Cleaned up code, added visual studio buildconfig):src/femtocell.h
+=======
+>>>>>>> 09a1a4105e2edd57525e5bdd81e5428a575e2677:femtocell.h
 struct icmp_hdr_s {
 	uint8_t type;
 	uint8_t code;
