@@ -1,5 +1,12 @@
 #include "femtocell.h"
 
+void XORCipher(char* data, char* key, int dataLen) {
+	for (int i = 0; i < dataLen; ++i) {
+		data[i] = data[i] ^ key[i];
+	}
+}
+
+
 struct sockaddr_in* GetIP() 
 {
 	SOCKADDR_IN adress;

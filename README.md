@@ -6,9 +6,9 @@ It's way cooler now though. Trust me.
 ## Building
 Executable: `x86_64-w64-mingw32-gcc *.c -lws2_32 -o femtocell.exe`
 
-_DLL: `x86_64-w64-mingw32-gcc *.c -D _DLL -shared -lws2_32 -o femtocell.dll`
+DLL: `x86_64-w64-mingw32-gcc *.c -D _DLL -shared -lws2_32 -o femtocell.dll`
 
-`-D _DEBUG` set for debugging.
+`-D DEBUG` set for debugging.
 
 ## Usage
 ### TCP

