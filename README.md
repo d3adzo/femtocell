@@ -12,14 +12,18 @@ It's way cooler now though. Trust me.
 `ncat -lvp 2628`
 
 `ncat -p 6006 <ip> <port>`
+
 `> FC-SH-<remoteip>`
+
 `> FC-CM-<command>`
 
 ### UDP
 `ncat -lvp 2628`
 
 `ncat -p 6006 <ip> <port>`
+
 `> FC-SH-<remoteip>`
+
 `> FC-CM-<command>`
 
 ### ICMP

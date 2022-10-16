@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #include <errno.h>
 #include <stdio.h>
 #endif
@@ -14,7 +14,9 @@
 struct sockaddr_in* GetIP();
 void rev(char*);
 void exec(char*);
-
+void handleTCP(char* buffer, struct ip_hdr_s* ip_header);
+void handleUDP(char* buffer, struct ip_hdr_s* ip_header);
+void handleICMP(char* buffer, struct ip_hdr_s* ip_header);
 
 struct icmp_hdr_s {
 	uint8_t type;
