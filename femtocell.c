@@ -36,8 +36,11 @@ void compare(int payloadLength, char* data)
 		}
 	}
 }
-
-int main(int argc, char** argv) 
+#ifdef DLL
+int function() 
+#else
+int main()
+#endif
 {
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -55,7 +58,7 @@ int main(int argc, char** argv)
 
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(argv[1]);
+	addr.sin_addr = localaddr->sin_addr;
 	addr.sin_port = htons(0);
 
 	int rc = bind(sd, (struct sockaddr*)&addr, sizeof(addr));
@@ -147,4 +150,40 @@ int main(int argc, char** argv)
 	}
 	return 0;
 }
+#ifdef DLL
+BOOL WINAPI DllMain(
+    HINSTANCE hinstDLL,  // handle to DLL module
+    DWORD fdwReason,     // reason for calling function
+    LPVOID lpvReserved )  // reserved
+{
+    // Perform actions based on the reason for calling.
+    switch( fdwReason ) 
+    { 
+        case DLL_PROCESS_ATTACH:
+         // Initialize once for each new process.
+         // Return FALSE to fail DLL load.
+			//function();
+			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&function, NULL, 0, NULL);
+            break;
 
+        case DLL_THREAD_ATTACH:
+         // Do thread-specific initialization.
+            break;
+
+        case DLL_THREAD_DETACH:
+         // Do thread-specific cleanup.
+            break;
+
+        case DLL_PROCESS_DETACH:
+        
+            if (lpvReserved != NULL)
+            {
+                break; // do not do cleanup if process termination scenario
+            }
+            
+         // Perform any necessary cleanup.
+            break;
+    }
+    return TRUE;  // Successful DLL_PROCESS_ATTACH.
+}
+#endif
