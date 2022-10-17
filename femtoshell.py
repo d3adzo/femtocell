@@ -107,7 +107,7 @@ def prompt2(params):
             encrypted = xor_encrypt(plaintext.encode(), 0x10)
         else:			
             continue
-
+ 
         if(params["transport"] == "udp"):
             scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
             scapy.UDP(sport=params["lport"], dport=params["rport"])/encrypted)
