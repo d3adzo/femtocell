@@ -84,12 +84,6 @@ def main():
     if not os.path.exists("./history"):
         os.system("mkdir history")
 
-    if not os.path.isfile("./history/main.history"):
-        os.system("touch main.history")
-
-    if not os.path.isfile("./history/cmd.history"):
-        os.system("touch cmd.history")
-
     while(True):
         user_in = prompt(u'femtocell ~ ',
                         history=FileHistory('history/main.history'),
