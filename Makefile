@@ -4,7 +4,9 @@ OUTDIR = bin
 MKDIR = mkdir -p bin
 SF := $(wildcard *.c)
 
-all: clean exe exe-debug dll dll-debug
+all: clean exe dll
+
+debug: clean exe-debug dll-debug
 
 exe:
 	$(CC) $(SF) $(CFLAGS) -o $(OUTDIR)/femtocell.exe
