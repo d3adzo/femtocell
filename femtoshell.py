@@ -1,32 +1,10 @@
-import cmd
-from email.mime import base
-from re import A
-from tokenize import group
-from turtle import goto
 import scapy.all as scapy
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-# from prompt_toolkit.contrib.completers import WordCompleter
-import click
+from termcolor import colored
 import os
 import confuse
-
-""" 
-set
-- mode (shell vs cmd)
-- transport (i/u/t)
-- lhost (get from eth adapter)
-- rhost (REQUIRED)
-- lport (6006)
-- rport (445)
-- command (whoami)
-- if mode is shell, listen on lhost:lport
-- if mode is cmd, use cmd option
-show
-- all
-
-"""
 
 parsedConfig = {}
 
@@ -63,6 +41,18 @@ groupparams = {
     "TRANSPORT": "TCP"
 }
 
+def validGroupKey():
+    key = groupparams["GROUP"]
+
+    try:
+        parsedConfig[key]
+    except KeyError:
+        print(colored(f"[!] GROUP {key} does not exist. Setting GROUP value back to blank.\n", "red"))
+        groupparams["GROUP"] = ""
+        return False
+    
+    return True
+
 def getGroup():
     key = groupparams["GROUP"]
     loi = []
@@ -73,9 +63,6 @@ def getGroup():
         subgroups = parsedConfig[key+':children']
         for item in subgroups:
             loi.append(parsedConfig[item+':hosts'])
-    else:
-        print('not valid key passed.')
-        return []
 
     return loi
 
@@ -104,18 +91,23 @@ def importConfig(op_1):
             parsedConfig[x+":children"] = list(configItems[x].get('children'))
 
     baseparams["FILE"] = op_1
-    print(f"[+] Config {op_1} loaded.\n")
+    print(colored(f"[+] Config {op_1} loaded.\n", "blue"))
 
 
 def print_groups():
     key = groupparams["GROUP"]
 
+    if not validGroupKey():
+        return
+
     if parsedConfig[key] == 'hosts':
+        print(key)
         print(parsedConfig[key+':hosts'])
     elif parsedConfig[key] == 'children':
         subgroups = parsedConfig[key+':children']
         for item in subgroups:
             print(item)
+            print(parsedConfig[item+":hosts"])
 
 
 def xor_encrypt(byte_msg, byte_key):
@@ -126,15 +118,18 @@ def xor_encrypt(byte_msg, byte_key):
     return encrypt_byte
 
 
-def print_help():
-    print("read the fucking readme")
+def print_help(location):
+    if location == "sub":
+        print(colored("\n[?] REQUIRED: set <key> <value>\n[?] BACK: back/exit\n[?] INFO: options\n[?] INFO: targets (GROUP mode only)\n[?] REQUIRED: execute\n", "yellow"))
+    else:
+        print(colored("\n[?] REQUIRED: set mode <shell/cmd/group>\n[?] EXIT: exit\n[?] INFO: options\n[?] OPTIONAL: load <file.yml> (REQUIRED for GROUP mode)\n[?] REQUIRED: ready\n", "yellow"))
 
 
 def print_options(p):
     for item in p.keys():
         if baseparams["MODE"] == "GROUP" and item == "RHOST":
             continue
-        print(f"\n{item}: {p[item]}")
+        print(colored(f"{item}: {p[item]}", "blue"))
     print()
 
 
@@ -171,10 +166,10 @@ def main():
                     if baseparams["MODE"] == "SHELL" or baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP":
                         pass
                     else:
-                        print("mode set incorrectly")
+                        print(colored(f"[!] MODE {op_2} does not exist. Setting MODE value back to blank.\n", "red"))
                         baseparams["MODE"] = ""
                         continue
-                    print(f"[*] Mode {op_2} set.\n")
+                    print(colored(f"[*] Mode {op_2} set.\n", "blue"))
         elif len(user_in) == 2:
             user_cmd = user_in[0]
             op_1 = user_in[1]
@@ -182,8 +177,10 @@ def main():
                 if os.path.exists(op_1):
                     importConfig(op_1)
                 else:
-                    print("file doesn't exist")
+                    print(colored(f"[!] File {op_1} doesn't exist.\n", "red"))
                     continue
+            else:
+                print_help("base")
 
         elif len(user_in) == 1:
             user_cmd = user_in[0].upper()
@@ -191,7 +188,7 @@ def main():
             if user_cmd == "EXIT":
                 exit()
             elif user_cmd == "HELP":
-                print_help()
+                print_help("base")
             elif user_cmd == "OPTIONS":
                 print_options(baseparams)
             elif user_cmd == "READY":
@@ -201,21 +198,23 @@ def main():
                     ready(cmdparams)
                 elif baseparams["MODE"] == "GROUP":
                     if len(parsedConfig) == 0:
-                        print('no config loaded')
+                        print(colored('[!] No config loaded.\n', "red"))
                         continue     
                     ready(groupparams)
                 else:
-                    print("you must set mode")
+                    print(colored("[!] No mode set.\n", "red"))
                     print_options(baseparams)
             else:
-                print_help()
+                print_help("base")
+        elif len(user_in) == 0:
+            continue
         else:
-            print_help()
+            print_help("base")
 
 
 def ready(params):
     while True:
-        user_in = prompt(f'FEMTOCELL // ({baseparams["MODE"]}) // ',
+        user_in = prompt(f'FEMTOCELL // {baseparams["MODE"]} // ',
                         history=FileHistory('history/interact.history'),
                         auto_suggest=AutoSuggestFromHistory(),
                         ).split()
@@ -227,10 +226,13 @@ def ready(params):
                 return
             elif user_cmd == "OPTIONS":
                 print_options(params)
-            
-            elif baseparams["MODE"] == "GROUP" and user_cmd == "groups":
+            elif user_cmd == "HELP":
+                print_help("sub")
+            elif baseparams["MODE"] == "GROUP" and user_cmd == "TARGETS":
+                if params["GROUP"] == "":
+                    print("no group set")
+                    continue    
                 print_groups()
-            
             elif user_cmd == "EXECUTE":
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
@@ -249,8 +251,10 @@ def ready(params):
                             groupparams["RHOST"] = ip
                             execute(plaintext, groupparams)
                 else:
+                    print_help("sub")
                     continue
-            else:			
+            else:
+                print_help("sub")
                 continue
         elif len(user_in) == 3:
             user_cmd = user_in[0].upper()
@@ -264,11 +268,14 @@ def ready(params):
                     params[op_1] = op_2
                     print_options(params)
                 else:
-                    print("cmd help")
+                    print_help("sub")
             else:
-                print("cmd help")
+                print_help("sub")
+        elif len(user_in) == 0:
+            continue
         else:
-            print("cmd help")
+            print_help("sub")
+
 
 
 def verify(params):
@@ -277,19 +284,18 @@ def verify(params):
     if params["TRANSPORT"] == "TCP" or params["TRANSPORT"] == "UDP" or params["TRANSPORT"] == "ICMP":
         passing = True
     else:
-        print('transport incorrect')
+        print(colored('[!] TRANSPORT set incorrectly.\n', 'red'))
         params["TRANSPORT"] == "TCP"
 
     if baseparams["MODE"] != "GROUP" and params["RHOST"] == "": # blank or is invalid ip
-        print("RHOST incorrect")
+        print(colored('[!] RHOST required.\n', 'red'))
         passing = False
 
     if params["LHOST"] == "": # blank or is invalid ip
-        print('LHOST incorrect')
+        print(colored('[!] LHOST required.\n', 'red'))
         passing = False
 
-    if baseparams["MODE"] == "GROUP" and params["GROUP"] == "":
-        print("GROUP not set")
+    if baseparams["MODE"] == "GROUP" and not validGroupKey():
         passing = False
 
     return passing
@@ -312,7 +318,7 @@ def execute(plaintext, params):
         encrypted, verbose=False)
 
     RHOST = params["RHOST"]
-    print(f"Sending {plaintext} to {RHOST}\n")
+    print(colored(f"[*] Sending {plaintext[7:]} --> {RHOST}\n", "green"))
 
 if(__name__ == "__main__"):
     main()
