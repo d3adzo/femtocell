@@ -1,0 +1,29 @@
+---
+all:
+  children:
+    dc:
+      hosts:
+        10.10.10.[1:10]:
+    wamp:
+      hosts:
+        10.[1:10].10.1:
+    client:
+      hosts:
+        10.1.[1:10].1:
+    ftp:
+      hosts:
+        10.1.[1:10].2:
+    lan:
+      children:
+        dc:
+        client:
+    cloud:
+      children:
+        wamp:
+        ftp:
+    windows:
+      children:
+        dc:
+        client:
+        wamp:
+        ftp:

