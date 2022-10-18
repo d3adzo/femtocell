@@ -284,7 +284,7 @@ def verify(params):
     if params["TRANSPORT"] == "TCP" or params["TRANSPORT"] == "UDP" or params["TRANSPORT"] == "ICMP":
         passing = True
     else:
-        print(colored('[!] TRANSPORT set incorrectly.\n', 'red'))
+        print(colored('[!] TRANSPORT set incorrectly. Setting TRANSPORT to TCP.\n', 'red'))
         params["TRANSPORT"] == "TCP"
 
     if baseparams["MODE"] != "GROUP" and params["RHOST"] == "": # blank or is invalid ip
