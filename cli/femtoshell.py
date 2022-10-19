@@ -84,7 +84,7 @@ def listen():
 
 
 def pingListen():
-    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "blue"))
+    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
     pkts = scapy.sniff(filter="icmp", timeout=15) # listen for 15 seconds for callbacks
     tCallbacks = []
 
@@ -164,7 +164,7 @@ def importConfig(op_1):
             parsedConfig[x+":children"] = list(configItems[x].get('children'))
 
     baseparams["FILE"] = op_1
-    print(colored(f"[+] Config {op_1} loaded.\n", "blue"))
+    print(colored(f"[+] Config {op_1} loaded.\n", "cyan"))
 
 
 def print_groups():
@@ -202,7 +202,7 @@ def print_options(p):
     for item in p.keys():
         if baseparams["MODE"] == "GROUP" and item == "RHOST":
             continue
-        print(colored(f"{item}: {p[item]}", "blue"))
+        print(colored(f"{item}: {p[item]}", "cyan"))
     print()
 
 
@@ -242,7 +242,7 @@ def main():
                         print(colored(f"[!] MODE {op_2} does not exist. Setting MODE value back to blank.\n", "red"))
                         baseparams["MODE"] = ""
                         continue
-                    print(colored(f"[*] Mode {op_2} set.\n", "blue"))
+                    print(colored(f"[*] Mode {op_2} set.\n", "cyan"))
             elif user_cmd == "XOR":
                 if op_2 == "TRUE":
                     baseparams["XOR"] = True
@@ -325,7 +325,7 @@ def ready(params):
                     execute(plaintext, shellparams)
                     t.join()
 
-                    print(colored("\n[*] Shell closed.\n", "blue"))
+                    print(colored("\n[*] Shell closed.\n", "cyan"))
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
                     if parsedConfig.get(groupparams.get("GROUP")) == "":
