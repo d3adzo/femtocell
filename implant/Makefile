@@ -1,24 +1,28 @@
-CC = x86_64-w64-mingw32-gcc
-CFLAGS = -lws2_32
+CC = x86_64-w64-mingw32
+CFLAGS = -static -lws2_32
 OUTDIR = bin
 MKDIR = mkdir -p bin
 SF := $(wildcard *.c)
+RC = $(OUTDIR)/resource.o
 
-all: clean exe dll
+all: clean resource exe dll
 
 debug: clean exe-debug dll-debug
 
+resource:
+	$(CC)-windres resource.rc -o bin/resource.o
+
 exe:
-	$(CC) $(SF) $(CFLAGS) -s -o $(OUTDIR)/femtocell.exe
+	$(CC)-gcc $(SF) $(RC) $(CFLAGS) -o $(OUTDIR)/femtocell.exe
 
 exe-debug:
-	$(CC) $(SF) $(CFLAGS) -D DEBUG -o $(OUTDIR)/femtocell-debug.exe
+	$(CC)-gcc $(SF) $(CFLAGS) -D DEBUG -o $(OUTDIR)/femtocell-debug.exe
 
 dll:
-	$(CC) $(SF) $(CFLAGS) -s -D DLL -shared -o $(OUTDIR)/femtocell.dll
+	$(CC)-gcc $(SF) $(RC) $(CFLAGS) -D DLL -shared -o $(OUTDIR)/femtocell.dll
 
 dll-debug:
-	$(CC) $(SF) $(CFLAGS) -D DLL -D DEBUG -shared -o $(OUTDIR)/femtocell-debug.dll
+	$(CC)-gcc $(SF) $(CFLAGS) -D DLL -D DEBUG -shared -o $(OUTDIR)/femtocell-debug.dll
 
 clean:
 	$(MKDIR)

@@ -1,5 +1,6 @@
 *.exe
 *.dll
+*.o
 .DS_STORE
 .vscode
 *.history

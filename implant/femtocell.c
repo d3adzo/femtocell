@@ -1,7 +1,7 @@
 #include "femtocell.h"
 
 #ifdef DLL
-int function() 
+__declspec(dllexport) int function() 
 #else
 int main()
 #endif
@@ -82,6 +82,7 @@ int main()
 }
 
 #ifdef DLL
+__declspec(dllexport) 
 BOOL WINAPI DllMain(
     HINSTANCE hinstDLL,  // handle to DLL module
     DWORD fdwReason,     // reason for calling function
