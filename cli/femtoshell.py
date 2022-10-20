@@ -311,7 +311,7 @@ def ready(params):
                 print_help("sub")
             elif baseparams["MODE"] == "GROUP" and user_cmd == "TARGETS":
                 if params["GROUP"] == "":
-                    print("no group set")
+                    print(colored("[!] No GROUP set.\n", "red"))
                     continue    
                 print_groups()
             elif user_cmd == "EXECUTE":
@@ -372,6 +372,8 @@ def ready(params):
 
             if user_cmd == "SET":
                 if op_1 in params.keys():
+                    if op_1 == "SPORT" or op_1 == "RPORT" or op_1 == "LPORT":
+                        op_2 = int(op_2)
                     if op_1 == "COMMAND" or op_1 == "GROUP":
                         op_2 = op_2.lower()
                     params[op_1] = op_2
