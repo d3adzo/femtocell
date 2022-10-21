@@ -9,6 +9,8 @@ import socket, sys, time
 import requests
 import multiprocessing
 
+pwnboard = "http://lumbercamp.pwnboard.win/pwn/boxaccess"
+
 parsedConfig = {}
 
 baseparams = {
@@ -46,6 +48,12 @@ groupparams = {
     "TRANSPORT": "TCP"
 }
 
+def updatePwnboard(ip):
+    data = {'ip': ip, 'application': "femtocell"}
+    try:
+        req = requests.post(pwnboard, json=data, timeout=3)
+    except Exception as E:
+        print(E)
 
 def listen():
     TIME_WAIT = 0.25
@@ -96,11 +104,7 @@ def pingListen():
     # print(fCallbacks)
     for ip in fCallbacks:
         print(colored(f"[+] Ping received from: {ip}\n","green"))
-
-    # send to pwnboard
-    host = "http://" + "host" + "/generic"
-    for ip in fCallbacks:
-        data = {'ip': ip, 'type': "femtocell"}
+        updatePwnboard(ip)
         try:
             req = requests.post(host, json=data, timeout=3)
         except Exception as E:
