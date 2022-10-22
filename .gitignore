@@ -1,8 +1,10 @@
 *.exe
 *.dll
+*.o
 .DS_STORE
 .vscode
 *.history
+<<<<<<< HEAD
 
 
 ## Ignore Visual Studio temporary files, build results, and
@@ -356,3 +358,5 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+=======
+>>>>>>> origin/main
