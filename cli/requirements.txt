@@ -2,7 +2,4 @@ termcolor
 prompt_toolkit
 scapy
 confuse
-<<<<<<< HEAD
-=======
 requests
->>>>>>> origin/main
