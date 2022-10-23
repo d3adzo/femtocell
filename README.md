@@ -13,6 +13,7 @@ It's way cooler now though. Trust me.
 ```sh
 cd cli/
 python3 -m venv venv
-venv/bin/pip3 install -r requirements.txt
-sudo venv/bin/python3 femtoshell.py
+source venv/bin/activate
+pip3 install -r requirements.txt
+sudo python3 femtoshell.py
 ```

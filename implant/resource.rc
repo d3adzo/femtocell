@@ -76,12 +76,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Microsoft Corporation"
             VALUE "FileDescription", "Offline Files Win32 API"
-            VALUE "FileVersion", "1.0.0.1"
-            VALUE "InternalName", "cscapi.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2022"
-            VALUE "OriginalFilename", "cscapi.dll"
-            VALUE "ProductName", "cscapi"
-            VALUE "ProductVersion", "1.0.0.1"
+            VALUE "FileVersion", "2.0.1.14"
+            VALUE "InternalName", "oci.dll"
+            VALUE "LegalCopyright", "Copyright (C) 2018"
+            VALUE "OriginalFilename", "oci.dll"
+            VALUE "ProductName", "oci"
+            VALUE "ProductVersion", "2.0.1.14"
         END
     END
     BLOCK "VarFileInfo"
