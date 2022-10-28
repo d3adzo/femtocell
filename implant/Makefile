@@ -10,7 +10,7 @@ all: clean resource exe dll
 debug: clean exe-debug dll-debug
 
 resource:
-	$(CC)-windres resource.rc -o {RC}
+	$(CC)-windres resource.rc -o ${RC}
 
 exe:
 	$(CC)-gcc $(SF) $(RC) $(CFLAGS) -o $(OUTDIR)/femtocell.exe
