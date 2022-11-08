@@ -32,8 +32,10 @@ void rev(char* ip)
 #ifdef DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
+		WaitForInputIdle(pi.hProcess, INFINITE);
 		return;
 	}
+	WaitForSingleObject(pi.hProcess, INFINITE);
 }
 
 void exec(char* cmd)
@@ -50,6 +52,7 @@ void exec(char* cmd)
 #ifdef DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
+		WaitForInputIdle(pi.hProcess, INFINITE);
 		return;
 	}
 

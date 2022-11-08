@@ -1,5 +1,5 @@
 CC = x86_64-w64-mingw32
-CFLAGS = -static -lws2_32
+CFLAGS = -static -lws2_32 -s
 OUTDIR = bin
 MKDIR = mkdir -p bin
 SF := $(wildcard *.c)

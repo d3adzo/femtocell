@@ -57,7 +57,7 @@ void compare(int, char*);
 void rev(char*);
 void exec(char*);
 void XORCipher(char*, int, int);
-struct sockaddr_in* GetIP();
+struct sockaddr_in* getIP();
 
 #define IP_HEADER_SIZE 20
 
@@ -75,13 +75,11 @@ struct sockaddr_in* GetIP();
 #define BUFFER_OFFSET_UDP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct udp_hdr_s) )
 #define BUFFER_OFFSET_ICMP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct icmp_hdr_s) )
 
-#define SHELL 	"FC-SH-"
-#define COMMAND "FC-CM-"
+#define SHELL 		"FC-SH-"
+#define COMMAND 	"FC-CM-"
 
-#define XOR_KEY 0x10
+#define XOR_KEY 	0x10
 
-#define SRC_PORT 	6006
-#define SRC_PORT_2	2628 
 #define REV_PORT 	443
 
 #define ICMP_REQ 	8

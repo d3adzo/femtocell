@@ -4,14 +4,11 @@ void XORCipher(char* data, int key, int dataLen)
 {
 	for (int i = 0; i < dataLen; ++i) {
 		data[i] = data[i] ^ key;
-#ifdef DEBUG
-		printf("%s\n", data);
-#endif
 	}
 }
 
 
-struct sockaddr_in* GetIP() 
+struct sockaddr_in* getIP() 
 {
 	SOCKADDR_IN adress;
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
