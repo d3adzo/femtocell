@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import scapy.all as scapy
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
@@ -82,8 +84,8 @@ def listen(queue):
 def pingListen():
     print(colored(f"[*] Waiting 10 seconds for callbacks.\n", "cyan"))
     pkts = scapy.sniff(
-        iface="bridge101", filter="icmp", timeout=10
-    )  # listen for 10 seconds for callbacks
+        iface="Ethernet", filter="icmp", timeout=10
+    ) 
     tCallbacks = []
 
     for packet in pkts:
@@ -125,7 +127,7 @@ def getGroup():
     loi = []
 
     if parsedConfig[key] == "hosts":
-        loi.append(parsedConfig[key + ":hosts"])
+            loi.append(parsedConfig[key + ":hosts"])
     elif parsedConfig[key] == "children":
         subgroups = parsedConfig[key + ":children"]
         for item in subgroups:
@@ -159,7 +161,8 @@ def importConfig(op_1):
             parsedConfig[x + ":children"] = list(configItems[x].get("children"))
 
     baseparams["FILE"] = op_1
-    print(colored(f"[+] Config {op_1} loaded.\n", "cyan"))
+    baseparams["MODE"] = "GROUP"
+    print(colored(f"[+] Config {op_1} loaded. MODE set to GROUP.\n", "cyan"))
 
 
 def print_groups():
@@ -219,7 +222,7 @@ def main():
  / __/  __/ / / / / / /_/ /_/ / /__/  __/ / /  
 /_/  \___/_/ /_/ /_/\__/\____/\___/\___/_/_/   
 
-    ~ kindtime & a41
+    ~ kindtime & m720
 
     """
     )
@@ -258,16 +261,16 @@ def main():
                         baseparams["MODE"] = ""
                         continue
                     print(colored(f"[*] Mode {op_2} set.\n", "cyan"))
-            elif op_1 == "XOR":
-                if op_2 == "TRUE":
-                    baseparams["XOR"] = True
-                elif op_2 == "FALSE":
-                    baseparams["XOR"] = False
-                else:
-                    print(
-                        colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "red")
-                    )
-                    continue
+                elif op_1 == "XOR":
+                    if op_2 == "TRUE":
+                        baseparams["XOR"] = True
+                    elif op_2 == "FALSE":
+                        baseparams["XOR"] = False
+                    else:
+                        print(
+                            colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "red")
+                        )
+                        continue
                     print(colored(f"[*] XOR set to {op_2}.\n", "cyan"))
         elif len(user_in) == 2:
             user_cmd = user_in[0]
@@ -362,7 +365,10 @@ def ready(params):
                     for iplist in groupList:
                         for ip in iplist:
                             groupparams["RHOST"] = ip
-                            execute(plaintext, groupparams)
+                            print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "green"))
+                            t = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
+                            t.start()
+                    t.join()
                 else:
                     print_help("sub")
                     continue
@@ -385,7 +391,9 @@ def ready(params):
                     for iplist in groupList:
                         for ip in iplist:
                             groupparams["RHOST"] = ip
-                            execute(plaintext, groupparams)
+                            e = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
+                            e.start()
+                    e.join()
                     t.join()
 
                 else:
@@ -459,11 +467,6 @@ def verify(params):
     return passing
 
 
-def printSendOutput(params, plaintext):
-    RHOST = params["RHOST"]
-    print(colored(f"[*] Sending {plaintext[6:]} --> {RHOST}\n", "green"))
-
-
 def execute(plaintext, params):
     if baseparams["XOR"]:
         payload = xor_encrypt(plaintext.encode(), 0x10)
@@ -477,7 +480,6 @@ def execute(plaintext, params):
             / payload,
             verbose=False,
         )
-        printSendOutput(params, plaintext)
         return
 
     if params["TRANSPORT"] == "UDP":
@@ -489,11 +491,10 @@ def execute(plaintext, params):
     try:
         sock.connect((params["RHOST"], params["RPORT"]))
         sock.send(payload)
-        printSendOutput(params, plaintext)
     except TimeoutError:
         rport = params.get("RPORT")
         rhost = params.get("RHOST")
-        print(f"Port {rport} not open on {rhost}.")
+        print(colored(f"[!] Port {rport} not open on {rhost}.", "red"))
     finally:
         sock.close()
 
