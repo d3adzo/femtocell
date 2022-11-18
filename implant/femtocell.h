@@ -64,14 +64,12 @@ struct sockaddr_in* getIP();
 #define BUFFER_SIZE_PKT ((256*256) - 1)
 #define BUFFER_SIZE_ETH 14
 #define BUFFER_SIZE_IP (BUFFER_SIZE_PKT - BUFFER_SIZE_ETH)
-#define BUFFER_SIZE_TCP sizeof(struct tcp_hdr_s)
 #define BUFFER_SIZE_UDP sizeof(struct udp_hdr_s)
 #define BUFFER_SIZE_ICMP sizeof(struct icmp_hdr_s)
 
 #define BUFFER_OFFSET_ETH 16
 #define BUFFER_OFFSET_IP (BUFFER_OFFSET_ETH + BUFFER_SIZE_ETH)
 #define BUFFER_OFFSET_L4 ( BUFFER_OFFSET_IP + sizeof(struct ip_hdr_s) )
-#define BUFFER_OFFSET_TCP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct tcp_hdr_s) )
 #define BUFFER_OFFSET_UDP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct udp_hdr_s) )
 #define BUFFER_OFFSET_ICMP_DATA ( BUFFER_OFFSET_L4 + sizeof(struct icmp_hdr_s) )
 

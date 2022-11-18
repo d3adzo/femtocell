@@ -34,8 +34,9 @@ void handleTCP(char* buffer, struct ip_hdr_s* ip_header)
 	uint16_t flag = (uint16_t)tcp_header->th_flags;
 	if (flag >> 3 % 2)
 	{
-		char* data = (char*)(buffer + BUFFER_OFFSET_TCP_DATA);
-		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_TCP;
+		int tcp_header_size = 4*((int)tcp_header->th_off);
+		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - tcp_header_size; // ntohs(ip_header->ip_len)
+		char* data = (char*)(buffer + (BUFFER_OFFSET_L4 + tcp_header_size));
 #ifndef DEBUG
 		XORCipher(data, XOR_KEY, payloadLength);
 #endif
