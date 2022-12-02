@@ -18,16 +18,12 @@ Make sure your binary runs with administrator privileges, or it will fail.
 ### Unix
 ```sh
 cd cli/
-python3 -m venv venv
-source venv/bin/activate
 pip3 install -r requirements.txt
 sudo ./femtoshell 
 ```
 ### Windows
 ```ps1
 cd .\cli
-python -m venv venv
-.\venv\scripts\activate
 pip3 install -r requirements.txt
 python femtoshell # running as admin
 ```
