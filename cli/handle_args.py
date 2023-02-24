@@ -5,8 +5,7 @@ import os
 from termcolor import colored
 
 def handle_args_main(ags):
-    print('non interactive mode')
-    print(ags)
+    print(colored("FEMTOCELL // NON-INTERACTIVE\n", "green"))
     if ags.debug:
         femtoshell.baseparams["XOR"] = False
     

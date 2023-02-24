@@ -7,7 +7,7 @@ from termcolor import colored
 import femtoshell
 
 def interactive_main():
-    print('interactive mode')
+    print(colored("FEMTOCELL // INTERACTIVE\n", "green"))
     if not os.path.exists("./history"):
         os.system("mkdir history")
 
@@ -29,8 +29,8 @@ def interactive_main():
                     if ( femtoshell.baseparams["MODE"] == "SHELL" or femtoshell.baseparams["MODE"] == "CMD" or femtoshell.baseparams["MODE"] == "GROUP"):
                         pass
                     else:
-                        print( colored( f"[!] MODE {op_2} does not exist. Setting MODE value back to blank.\n", "red",))
-                        femtoshell.baseparams["MODE"] = ""
+                        print( colored( f"[!] MODE {op_2} does not exist. Setting MODE value back to None.\n", "red",))
+                        femtoshell.baseparams["MODE"] = None
                         continue
                     print(colored(f"[*] Mode {op_2} set.\n", "cyan"))
                 elif op_1 == "XOR":
@@ -76,7 +76,7 @@ def interactive_main():
                 elif femtoshell.baseparams["MODE"] == "CMD":
                     ready(femtoshell.cmdparams)
                 elif femtoshell.baseparams["MODE"] == "GROUP":
-                    if len(parsedConfig) == 0:
+                    if len(femtoshell.parsedConfig) == 0:
                         print(colored("[!] No config loaded.\n", "red"))
                         continue
                     ready(femtoshell.groupparams)
@@ -111,7 +111,7 @@ def ready(params):
             elif user_cmd == "HELP":
                 femtoshell.print_help("sub")
             elif femtoshell.baseparams["MODE"] == "GROUP" and user_cmd == "TARGETS":
-                if params["GROUP"] == "":
+                if params["GROUP"] is None:
                     print(colored("[!] No GROUP set.\n", "red"))
                     continue
                 femtoshell.print_groups()

