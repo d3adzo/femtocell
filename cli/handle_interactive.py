@@ -126,33 +126,8 @@ def ready(params):
                 else:
                     femtoshell.print_help("sub")
                     continue
-            # elif user_cmd == "PING": # under contruction
-            #     if femtoshell.baseparams["MODE"] == "CMD" and verify(femtoshell.cmdparams):
-            #         plaintext = initPing(femtoshell.cmdparams)
-            #         t = multiprocessing.Process(target=pingListen, args=())
-            #         t.start()
-            #         time.sleep(2)
-            #         femtoshell.execute(plaintext, femtoshell.cmdparams)
-            #         t.join()
-            #     elif femtoshell.baseparams["MODE"] == "GROUP" and verify(femtoshell.groupparams):
-            #         if parsedConfig.get(femtoshell.groupparams.get("GROUP")) == "":
-            #             continue
-            #         groupList = getGroup()
-            #         plaintext = initPing(femtoshell.groupparams)
-            #         t = multiprocessing.Process(target=pingListen, args=())
-            #         t.start()
-            #         time.sleep(2)
-            #         for iplist in groupList:
-            #             for ip in iplist:
-            #                 femtoshell.groupparams["RHOST"] = ip
-            #                 e = multiprocessing.Process(target=femtoshell.execute, args=(plaintext,femtoshell.groupparams,))
-            #                 e.start()
-            #         e.join()
-            #         t.join()
-
-                # else:
-                #     print(colored("[!] PING only works on GROUP or CMD mode.\n", "red"))
-                #     continue
+            elif user_cmd == "PING": 
+                femtoshell.executePing()
             else:
                 femtoshell.print_help("sub")
                 continue
@@ -169,6 +144,9 @@ def ready(params):
                         op_2 = op_2.lower()
                     params[op_1] = op_2
                     femtoshell.print_options(params)
+                elif op_1 == "IFACE":
+                    femtoshell.interface = op_2.lower()
+                    print(colored(f"[*] Interface set to {femtoshell.interface}.\n", "cyan"))
                 else:
                     femtoshell.print_help("sub")
             else:
@@ -182,8 +160,8 @@ def ready(params):
                     op_2 = ""
                     for i in range(2, len(user_in)):
                         op_2 = op_2 + user_in[i] + " "
-                params[op_1] = op_2.strip(" ")
-                femtoshell.print_options(params)
+                    params[op_1] = op_2.strip(" ")
+                    femtoshell.print_options(params)
             else:
                 femtoshell.print_help("sub")
         elif len(user_in) == 0:
