@@ -19,15 +19,43 @@ Make sure your binary runs with administrator privileges, or it will fail.
 ```sh
 cd cli/
 pip3 install -r requirements.txt
-sudo ./femtoshell 
+sudo ./femtoshell.py
 ```
 ### Windows
 ```ps1
 cd .\cli
 pip3 install -r requirements.txt
-python femtoshell # running as admin
+python femtoshell.py # running as admin
 ```
+### CLI Interaction with Implants
+```
+usage: femtoshell.py [-h] [-m [MODE]] [-t [TARGET]] [-l [LISTEN]] [-p [PORT]] [-c COMMAND [COMMAND ...]] [-r [TRANSPORT]] [-f [FILE]] [-g [GROUP]] [--ping [PING]] [--pwnboard [PWNBOARD]] [--debug]
 
+Interact with a femtocell agent via CLI arguments or interactively. Run with no arguments to start interactive prompt.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m [MODE], --mode [MODE]
+                        Set the targeting mode. Options: <shell>/<cmd>/<group>. Default: Shell
+  -t [TARGET], --target [TARGET]
+                        Target machine running the femtocell agent. Required if using <shell>/<cmd> mode.
+  -l [LISTEN], --listen [LISTEN]
+                        IP that is listening for a callback shell. This IP must be reachable from the target machine. Required if using <shell> mode.
+  -p [PORT], --port [PORT]
+                        Port open on target. Default: 445.
+  -c COMMAND [COMMAND ...], --command COMMAND [COMMAND ...]
+                        Run a single command. No output given. Required if using <cmd>/<group> mode.
+  -r [TRANSPORT], --transport [TRANSPORT]
+                        Transport protocol to use. Options: <tcp>/<udp>/<icmp>. Default: TCP.
+  -f [FILE], --file [FILE]
+                        Configuration file to load. Required if using <group> mode.
+  -g [GROUP], --group [GROUP]
+                        Set of targets specified in configuration file. Required if using <group> mode.
+  --ping [PING]         Ethernet interface to listen on for ping callbacks. Only relevant to <cmd>/<group> mode.
+  --pwnboard [PWNBOARD]
+                        Link for pwnboard callback support.
+  --debug               Debug mode. Disables initial packet encryption. For testing only.
+```
 ### Interacting with Implants
 There are three main modes of interaction: 
 - `shell` - interactive command prompt
@@ -77,3 +105,6 @@ TRANSPORT: ICMP
 Once all values are set, use `execute` to run your command.
 
 Type `back` or `exit` to return to the base prompt.
+
+### Ping Mode
+If attempting to ping an implant, you must be in the `cmd` or `group` modes. Use `set iface <iface>` to set the listening interface for callbacks.
