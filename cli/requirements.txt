@@ -3,3 +3,5 @@ prompt_toolkit
 scapy
 confuse
 requests
+nclib
+netifaces

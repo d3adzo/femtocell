@@ -4,3 +4,4 @@
 .DS_STORE
 .vscode
 *.history
+__pycache__
