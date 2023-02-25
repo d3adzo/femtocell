@@ -4,3 +4,4 @@ scapy
 confuse
 requests
 nclib
+netifaces
