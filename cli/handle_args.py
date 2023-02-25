@@ -20,7 +20,7 @@ def handle_args_main(ags):
         femtoshell.shellparams["TRANSPORT"] = ags.transport.upper()
         femtoshell.shellparams["LHOST"] = ags.listen
 
-        femtoshell.executeShell()
+        femtoshell.executeShell(ags.send)
     elif ags.mode.upper() == "CMD":
         femtoshell.cmdparams["RHOST"] = ags.target
         femtoshell.cmdparams["RPORT"] = ags.port
@@ -31,9 +31,11 @@ def handle_args_main(ags):
 
             femtoshell.executePing()
         else:
-            femtoshell.cmdparams["COMMAND"] = ' '.join(ags.command)
+            if ags.command is not None:
+                femtoshell.cmdparams["COMMAND"] = ' '.join(ags.command)
 
-            femtoshell.executeCmd()
+                femtoshell.executeCmd()
+
     elif ags.mode.upper() == "GROUP":
         femtoshell.groupparams["RHOST"] = ags.target
         femtoshell.groupparams["RPORT"] = ags.port
@@ -43,7 +45,7 @@ def handle_args_main(ags):
         if ags.file is not None and os.path.exists(ags.file):
             femtoshell.importConfig(ags.file)
         else:
-            print(colored(f"[!] File {ags.file} doesn't exist.\n", "red"))
+            print(colored(f"[-] File {ags.file} doesn't exist.\n", "red"))
             return
 
         if ags.ping is not None:
@@ -51,11 +53,12 @@ def handle_args_main(ags):
             
             femtoshell.executePing()
         else:
-            femtoshell.groupparams["COMMAND"] = ' '.join(ags.command)
+            if ags.command is not None:
+                femtoshell.groupparams["COMMAND"] = ' '.join(ags.command)
 
-            femtoshell.executeGroup()
+                femtoshell.executeGroup()
     else:
-        print( colored( f"[!] MODE {ags.mode} does not exist.\n", "red",))
+        print( colored( f"[-] MODE {ags.mode} does not exist.\n", "red",))
     return
 
 def setup_args():
@@ -140,6 +143,8 @@ def setup_args():
         const=1,
         help="Link for pwnboard callback support.",
     )
+    parser.add_argument("--send", dest="send", action="store_true", help="Send the shell to listener IP. Do not start listener on this machine.")
+    parser.set_defaults(send=False)
     parser.add_argument("--debug", dest="debug", action="store_true", help="Debug mode. Disables initial packet encryption. For testing only.")
     parser.set_defaults(debug=False)
     ags = parser.parse_args()

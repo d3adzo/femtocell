@@ -29,7 +29,7 @@ python femtoshell.py # running as admin
 ```
 ### CLI Interaction with Implants
 ```
-usage: femtoshell.py [-h] [-m [MODE]] [-t [TARGET]] [-l [LISTEN]] [-p [PORT]] [-c COMMAND [COMMAND ...]] [-r [TRANSPORT]] [-f [FILE]] [-g [GROUP]] [--ping [PING]] [--pwnboard [PWNBOARD]] [--debug]
+usage: femtoshell.py [-h] [-m [MODE]] [-t [TARGET]] [-l [LISTEN]] [-p [PORT]] [-c COMMAND [COMMAND ...]] [-r [TRANSPORT]] [-f [FILE]] [-g [GROUP]] [--ping [PING]] [--pwnboard [PWNBOARD]] [--send] [--debug]
 
 Interact with a femtocell agent via CLI arguments or interactively. Run with no arguments to start interactive prompt.
 
@@ -54,6 +54,7 @@ optional arguments:
   --ping [PING]         Ethernet interface to listen on for ping callbacks. Only relevant to <cmd>/<group> mode.
   --pwnboard [PWNBOARD]
                         Link for pwnboard callback support.
+  --send                Send the shell to listener IP. Do not start listener on this machine.
   --debug               Debug mode. Disables initial packet encryption. For testing only.
 ```
 ### Interacting with Implants

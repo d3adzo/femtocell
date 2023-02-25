@@ -29,7 +29,7 @@ def interactive_main():
                     if ( femtoshell.baseparams["MODE"] == "SHELL" or femtoshell.baseparams["MODE"] == "CMD" or femtoshell.baseparams["MODE"] == "GROUP"):
                         pass
                     else:
-                        print( colored( f"[!] MODE {op_2} does not exist. Setting MODE value back to None.\n", "red",))
+                        print( colored( f"[-] MODE {op_2} does not exist. Setting MODE value back to None.\n", "red",))
                         femtoshell.baseparams["MODE"] = None
                         continue
                     print(colored(f"[*] Mode {op_2} set.\n", "cyan"))
@@ -40,7 +40,7 @@ def interactive_main():
                         femtoshell.baseparams["XOR"] = False
                     else:
                         print(
-                            colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "red")
+                            colored(f"[!] XOR can only be set to TRUE or FALSE.\n", "yellow")
                         )
                         continue
                     print(colored(f"[*] XOR set to {op_2}.\n", "cyan"))
@@ -54,7 +54,7 @@ def interactive_main():
                 if os.path.exists(op_1):
                     femtoshell.importConfig(op_1)
                 else:
-                    print(colored(f"[!] File {op_1} doesn't exist.\n", "red"))
+                    print(colored(f"[-] File {op_1} doesn't exist.\n", "red"))
                     continue
             else:
                 femtoshell.print_help("base")
@@ -77,11 +77,11 @@ def interactive_main():
                     ready(femtoshell.cmdparams)
                 elif femtoshell.baseparams["MODE"] == "GROUP":
                     if len(femtoshell.parsedConfig) == 0:
-                        print(colored("[!] No config loaded.\n", "red"))
+                        print(colored("[-] No config loaded.\n", "red"))
                         continue
                     ready(femtoshell.groupparams)
                 else:
-                    print(colored("[!] No mode set.\n", "red"))
+                    print(colored("[-] No mode set.\n", "red"))
                     femtoshell.print_options(femtoshell.baseparams)
             else:
                 femtoshell.print_help("base")
@@ -112,7 +112,7 @@ def ready(params):
                 femtoshell.print_help("sub")
             elif femtoshell.baseparams["MODE"] == "GROUP" and user_cmd == "TARGETS":
                 if params["GROUP"] is None:
-                    print(colored("[!] No GROUP set.\n", "red"))
+                    print(colored("[-] No GROUP set.\n", "red"))
                     continue
                 femtoshell.print_groups()
             elif user_cmd == "EXECUTE":
