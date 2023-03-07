@@ -19,17 +19,17 @@ Make sure your binary runs with administrator privileges, or it will fail.
 ```sh
 cd cli/
 pip3 install -r requirements.txt
-sudo ./femtoshell.py
+sudo ./femtocell.py
 ```
 ### Windows
 ```ps1
 cd .\cli
 pip3 install -r requirements.txt
-python femtoshell.py # running as admin
+python femtocell.py # running as admin
 ```
 ### CLI Interaction with Implants
 ```
-usage: femtoshell.py [-h] [-m [MODE]] [-t [TARGET]] [-l [LISTEN]] [-p [PORT]] [-c COMMAND [COMMAND ...]] [-r [TRANSPORT]] [-f [FILE]] [-g [GROUP]] [--ping [PING]] [--pwnboard [PWNBOARD]] [--send] [--debug]
+usage: femtocell.py [-h] [-m [MODE]] [-t [TARGET]] [-l [LISTEN]] [-p [PORT]] [-c COMMAND [COMMAND ...]] [-r [TRANSPORT]] [-f [FILE]] [-g [GROUP]] [--ping [PING]] [--pwnboard [PWNBOARD]] [--send] [--debug]
 
 Interact with a femtocell agent via CLI arguments or interactively. Run with no arguments to start interactive prompt.
 

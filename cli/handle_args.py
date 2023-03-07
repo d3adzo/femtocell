@@ -1,4 +1,4 @@
-import femtoshell
+import femtocell
 import argparse
 import sys
 import os
@@ -7,56 +7,56 @@ from termcolor import colored
 def handle_args_main(ags):
     print(colored("FEMTOCELL // NON-INTERACTIVE\n", "green"))
     if ags.debug:
-        femtoshell.baseparams["XOR"] = False
+        femtocell.baseparams["XOR"] = False
     
     if ags.pwnboard is not None:
-        femtoshell.baseparams["PWNBOARD"] = ags.pwnboard
+        femtocell.baseparams["PWNBOARD"] = ags.pwnboard
 
-    femtoshell.baseparams["MODE"] = ags.mode.upper()
+    femtocell.baseparams["MODE"] = ags.mode.upper()
 
     if ags.mode.upper() == "SHELL":
-        femtoshell.shellparams["RHOST"] = ags.target
-        femtoshell.shellparams["RPORT"] = ags.port
-        femtoshell.shellparams["TRANSPORT"] = ags.transport.upper()
-        femtoshell.shellparams["LHOST"] = ags.listen
+        femtocell.shellparams["RHOST"] = ags.target
+        femtocell.shellparams["RPORT"] = ags.port
+        femtocell.shellparams["TRANSPORT"] = ags.transport.upper()
+        femtocell.shellparams["LHOST"] = ags.listen
 
-        femtoshell.executeShell(ags.send)
+        femtocell.executeShell(ags.send)
     elif ags.mode.upper() == "CMD":
-        femtoshell.cmdparams["RHOST"] = ags.target
-        femtoshell.cmdparams["RPORT"] = ags.port
-        femtoshell.cmdparams["TRANSPORT"] = ags.transport.upper()
+        femtocell.cmdparams["RHOST"] = ags.target
+        femtocell.cmdparams["RPORT"] = ags.port
+        femtocell.cmdparams["TRANSPORT"] = ags.transport.upper()
 
         if ags.ping is not None:
-            femtoshell.interface = ags.ping
+            femtocell.interface = ags.ping
 
-            femtoshell.executePing()
+            femtocell.executePing()
         else:
             if ags.command is not None:
-                femtoshell.cmdparams["COMMAND"] = ' '.join(ags.command)
+                femtocell.cmdparams["COMMAND"] = ' '.join(ags.command)
 
-                femtoshell.executeCmd()
+                femtocell.executeCmd()
 
     elif ags.mode.upper() == "GROUP":
-        femtoshell.groupparams["RHOST"] = ags.target
-        femtoshell.groupparams["RPORT"] = ags.port
-        femtoshell.groupparams["TRANSPORT"] = ags.transport.upper() 
-        femtoshell.groupparams["GROUP"] = ags.group
+        femtocell.groupparams["RHOST"] = ags.target
+        femtocell.groupparams["RPORT"] = ags.port
+        femtocell.groupparams["TRANSPORT"] = ags.transport.upper() 
+        femtocell.groupparams["GROUP"] = ags.group
 
         if ags.file is not None and os.path.exists(ags.file):
-            femtoshell.importConfig(ags.file)
+            femtocell.importConfig(ags.file)
         else:
             print(colored(f"[-] File {ags.file} doesn't exist.\n", "red"))
             return
 
         if ags.ping is not None:
-            femtoshell.interface = ags.ping
+            femtocell.interface = ags.ping
             
-            femtoshell.executePing()
+            femtocell.executePing()
         else:
             if ags.command is not None:
-                femtoshell.groupparams["COMMAND"] = ' '.join(ags.command)
+                femtocell.groupparams["COMMAND"] = ' '.join(ags.command)
 
-                femtoshell.executeGroup()
+                femtocell.executeGroup()
     else:
         print( colored( f"[-] MODE {ags.mode} does not exist.\n", "red",))
     return
