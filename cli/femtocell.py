@@ -141,15 +141,18 @@ def importConfig(op_1):
             parsedConfig[x] = "hosts"
             hostlist = []
             var = list(configItems[x].get("hosts").keys())[0]
-            lIdx = var.find("[")
-            rIdx = var.find("]")
-            mIdx = var.find(":")
-            lVal = var[lIdx + 1 : mIdx]
-            rVal = var[mIdx + 1 : rIdx]
-            for i in range(int(lVal), int(rVal) + 1):
-                lHalf = var[0:lIdx]
-                rHalf = var[rIdx + 1 : len(var)]
-                hostlist.append(lHalf + str(i) + rHalf)
+            if '[' not in var:
+                hostlist.append(var)
+            else:
+                lIdx = var.find("[")
+                rIdx = var.find("]")
+                mIdx = var.find(":")
+                lVal = var[lIdx + 1 : mIdx]
+                rVal = var[mIdx + 1 : rIdx]
+                for i in range(int(lVal), int(rVal) + 1):
+                    lHalf = var[0:lIdx]
+                    rHalf = var[rIdx + 1 : len(var)]
+                    hostlist.append(lHalf + str(i) + rHalf)
             parsedConfig[x + ":hosts"] = hostlist
         elif configItems[x].get("children"):
             parsedConfig[x] = "children"
