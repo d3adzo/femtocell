@@ -5,8 +5,9 @@ It's way cooler now though. Trust me.
 
 ## Implant
 ### Building
-You must have mingw-w64 installed in order to compile this. Run the 
+You must have mingw-w64 installed in order to compile this. 
 ```sh
+cd implant/
 make # compile exe and dll
 make debug # compile debug versions of exe and dll
 ```
@@ -14,7 +15,8 @@ The debug version contains print statements and all data is sent in plaintext.
 
 Make sure your binary runs with administrator privileges, or it will fail.
 ## Usage
-### CLI
+There are two primary methods of communicating with implants - interactively or via command line arguments.
+### Interactive Prompt
 ### Unix
 ```sh
 cd cli/
@@ -27,7 +29,7 @@ cd .\cli
 pip3 install -r requirements.txt
 python femtocell.py # running as admin
 ```
-### CLI Interaction with Implants
+### Argument Interaction with Implants
 ```
 usage: femtocell.py [-h] [-m [MODE]] [-t [TARGET]] [-l [LISTEN]] [-p [PORT]] [-c COMMAND [COMMAND ...]] [-r [TRANSPORT]] [-f [FILE]] [-g [GROUP]] [--ping [PING]] [--pwnboard [PWNBOARD]] [--send] [--debug]
 
@@ -57,7 +59,7 @@ optional arguments:
   --send                Send the shell to listener IP. Do not start listener on this machine.
   --debug               Debug mode. Disables initial packet encryption. For testing only.
 ```
-### Interacting with Implants
+### Interactive Prompt
 There are three main modes of interaction: 
 - `shell` - interactive command prompt
 - `cmd` - no-output command execution on a single target
@@ -107,5 +109,5 @@ Once all values are set, use `execute` to run your command.
 
 Type `back` or `exit` to return to the base prompt.
 
-### Ping Mode
+### Ping Mode (WIP)
 If attempting to ping an implant, you must be in the `cmd` or `group` modes. Use `set iface <iface>` to set the listening interface for callbacks.
