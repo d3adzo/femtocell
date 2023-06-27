@@ -23,13 +23,14 @@ def handle_args_main(ags):
         femtocell.executeShell(ags.send)
     elif ags.mode.upper() == "CMD":
         femtocell.cmdparams["RHOST"] = ags.target
+        femtocell.cmdparams["LHOST"] = ags.listen
         femtocell.cmdparams["RPORT"] = ags.port
         femtocell.cmdparams["TRANSPORT"] = ags.transport.upper()
 
         if ags.ping is not None:
-            femtocell.interface = ags.ping
-
+            # femtocell.interface = ags.ping
             femtocell.executePing()
+
         else:
             if ags.command is not None:
                 femtocell.cmdparams["COMMAND"] = ' '.join(ags.command)

